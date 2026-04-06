@@ -103,20 +103,6 @@ def handle_vcf(update, context):
         f"📂 Keep sending files\n"
         f"✅ Finish Type → /done"
     )
-
-#done of vcf to txt
-def done(update, context):
-    user_id = update.message.from_user.id
-
-    if user_id not in vcf_data:
-        update.message.reply_text("❌ No files uploaded")
-        return
-
-    user_state[user_id] = {"step": "vcf_name"}
-    update.message.reply_text(
-        "📝 Enter the name for your .txt file:\nExample: ExtractedList"
-    )
-
     if text == "📄 VCF to Text":
         vcf_data[user_id] = {"files": []}
 
@@ -157,6 +143,20 @@ def done(update, context):
     vcf_data.pop(user_id)
     user_state.pop(user_id)
     return
+
+
+#done of vcf to txt
+def done(update, context):
+    user_id = update.message.from_user.id
+
+    if user_id not in vcf_data:
+        update.message.reply_text("❌ No files uploaded")
+        return
+
+    user_state[user_id] = {"step": "vcf_name"}
+    update.message.reply_text(
+        "📝 Enter the name for your .txt file:\nExample: ExtractedList"
+    )
 
 # 🔹 Handle text steps
 def handle_text(update: Update, context: CallbackContext):
