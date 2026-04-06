@@ -221,8 +221,14 @@ def run_bot():
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("done", done))
+
     dp.add_handler(MessageHandler(Filters.document, handle_document))
     dp.add_handler(MessageHandler(Filters.text, handle_text))
+
+    dp.add_handler(MessageHandler(Filters.document.mime_type("text/vcard"), handle_vcf))
+    dp.add_handler(MessageHandler(Filters.document.mime_type("text/plain"), handle_txt))
+    dp.add_handler(MessageHandler(Filters.text, handle_text))  # text buttons / state
 
     updater.start_polling()
     updater.idle()
