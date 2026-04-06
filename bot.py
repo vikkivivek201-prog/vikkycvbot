@@ -165,6 +165,36 @@ def handle_text(update: Update, context: CallbackContext):
         )
         return
 
+    state = user_state.get(user_id)
+    if state and state.get("step") == "vcf_name":
+        filename = text + ".txt"
+        numbers = []
+
+    for f in vcf_data[user_id]["files"]:
+        with open(f, encoding="utf-8", errors="ignore") as file:
+            for line in file:
+                if "TEL" in line:
+                    num = line.split(":")[-1].strip()
+                    numbers.append(num)
+
+    with open(filename, "w") as f:
+        f.write("✅ Extracted Numbers\n\n")
+        for n in numbers:
+            f.write(n + "\n")
+
+    update.message.reply_document(open(filename, "rb"))
+    os.remove(filename)
+
+    update.message.reply_text("✅ Extraction Completed Successfully! 🎉")
+
+    # cleanup
+    for f in vcf_data[user_id]["files"]:
+        os.remove(f)
+
+    vcf_data.pop(user_id)
+    user_state.pop(user_id)
+    return
+
     if text == "📁 Text to VCF":
         update.message.reply_text("Send TXT file")
         return
@@ -216,36 +246,6 @@ def handle_text(update: Update, context: CallbackContext):
 
         update.message.reply_text("✅ Done")
         user_state.pop(user_id)
-
-    state = user_state.get(user_id)
-    if state and state.get("step") == "vcf_name":
-        filename = text + ".txt"
-        numbers = []
-
-    for f in vcf_data[user_id]["files"]:
-        with open(f, encoding="utf-8", errors="ignore") as file:
-            for line in file:
-                if "TEL" in line:
-                    num = line.split(":")[-1].strip()
-                    numbers.append(num)
-
-    with open(filename, "w") as f:
-        f.write("✅ Extracted Numbers\n\n")
-        for n in numbers:
-            f.write(n + "\n")
-
-    update.message.reply_document(open(filename, "rb"))
-    os.remove(filename)
-
-    update.message.reply_text("✅ Extraction Completed Successfully! 🎉")
-
-    # cleanup
-    for f in vcf_data[user_id]["files"]:
-        os.remove(f)
-
-    vcf_data.pop(user_id)
-    user_state.pop(user_id)
-    return
 
 # 🔹 Run bot
 def run_bot():
