@@ -13,7 +13,7 @@ def home():
     return "Bot is running!"
 
 # 🔹 Bot config
-TOKEN = "8656250844:AAGCxiFYQBzWvHGyZOFkHepHlUoumBm_RC4"
+TOKEN = "YOUR_BOT_TOKEN"
 ADMIN_ID = 5328734113
 
 main_menu = [
@@ -37,7 +37,7 @@ def save_users(data):
     with open("users.json", "w") as f:
         json.dump(data, f, indent=4)
 
-# 🔹 Start command
+# 🔹 Start
 def start(update: Update, context: CallbackContext):
     users = load_users()
     uid = str(update.message.from_user.id)
@@ -51,49 +51,59 @@ def start(update: Update, context: CallbackContext):
         reply_markup=ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
     )
 
-# 🔹 Handle TXT file
-def handle_document(update: Update, context: CallbackContext):
-    user_id = update.message.from_user.id
-    file = update.message.document.get_file()
-    filename = update.message.document.file_name
-
-    if not filename.endswith(".txt"):
-        update.message.reply_text("❌ Please send TXT file only")
-        return
-
-    path = f"{user_id}.txt"
-    file.download(path)
-
-    user_state[user_id] = {"step": "name", "file": path}
-    update.message.reply_text("Enter Contact Name:")
-
-# 🔹 Handle text steps
+# 🔹 TEXT HANDLER (MENU + STEPS)
 def handle_text(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     text = update.message.text
 
+    # 🔥 MENU SYSTEM
     if text == "📁 Text to VCF":
+        user_state[user_id] = {"mode": "txt_to_vcf"}
         update.message.reply_text("Send TXT file")
         return
 
-    state = user_state.get(user_id)
-    if not state:
-        update.message.reply_text("Send TXT file first")
+    if text == "📄 VCF to Text":
+        user_state[user_id] = {"mode": "vcf_to_txt"}
+        update.message.reply_text("Send VCF file")
         return
 
-    if state["step"] == "name":
+    if text == "🔄 Merge VCF":
+        update.message.reply_text("⚠️ Feature coming soon")
+        return
+
+    if text == "📦 Split Text":
+        update.message.reply_text("⚠️ Feature coming soon")
+        return
+
+    if text == "⚓ Admin/Navy":
+        if user_id == ADMIN_ID:
+            users = load_users()
+            update.message.reply_text(f"Total Users: {len(users)}")
+        return
+
+    if text == "💎 Buy Premium":
+        update.message.reply_text("Contact Admin for premium")
+        return
+
+    # 🔹 STEP PROCESS (TXT → VCF)
+    state = user_state.get(user_id)
+
+    if not state or state.get("mode") != "txt_to_vcf":
+        return
+
+    if state.get("step") == "name":
         state["name"] = text
         state["step"] = "prefix"
-        update.message.reply_text("Enter VCF file name:")
+        update.message.reply_text("Enter VCF file prefix:")
         return
 
-    if state["step"] == "prefix":
+    if state.get("step") == "prefix":
         state["prefix"] = text
         state["step"] = "limit"
         update.message.reply_text("Enter contacts per VCF:")
         return
 
-    if state["step"] == "limit":
+    if state.get("step") == "limit":
         try:
             limit = int(text)
         except:
@@ -106,6 +116,8 @@ def handle_text(update: Update, context: CallbackContext):
             numbers = f.read().splitlines()
 
         chunks = [numbers[i:i+limit] for i in range(0, len(numbers), limit)]
+
+        update.message.reply_text("⏳ Processing...")
 
         for idx, chunk in enumerate(chunks):
             vcf = ""
@@ -124,15 +136,33 @@ def handle_text(update: Update, context: CallbackContext):
         update.message.reply_text("✅ Done")
         user_state.pop(user_id)
 
-def handle_vcf(update: Update, context: CallbackContext):
-    file = update.message.document.get_file()
-    filename = update.message.document.file_name
+# 🔹 HANDLE TXT FILE
+def handle_txt(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+    state = user_state.get(user_id)
 
-    if not filename.endswith(".vcf"):
-        update.message.reply_text("❌ Send VCF file only")
+    if not state or state.get("mode") != "txt_to_vcf":
         return
 
-    path = "input.vcf"
+    file = update.message.document.get_file()
+    path = f"{user_id}.txt"
+    file.download(path)
+
+    user_state[user_id]["file"] = path
+    user_state[user_id]["step"] = "name"
+
+    update.message.reply_text("Enter Contact Name:")
+
+# 🔹 HANDLE VCF FILE
+def handle_vcf(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+    state = user_state.get(user_id)
+
+    if not state or state.get("mode") != "vcf_to_txt":
+        return
+
+    file = update.message.document.get_file()
+    path = f"{user_id}.vcf"
     file.download(path)
 
     numbers = []
@@ -143,7 +173,7 @@ def handle_vcf(update: Update, context: CallbackContext):
                 num = line.split(":")[-1].strip()
                 numbers.append(num)
 
-    txt_file = "output.txt"
+    txt_file = f"{user_id}_output.txt"
     with open(txt_file, "w") as f:
         f.write("\n".join(numbers))
 
@@ -152,22 +182,25 @@ def handle_vcf(update: Update, context: CallbackContext):
     os.remove(path)
     os.remove(txt_file)
 
-# 🔹 Run bot
+# 🔹 RUN BOT
 def run_bot():
     updater = Updater(TOKEN)
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.document, handle_document))
+
+    # 🔥 IMPORTANT ORDER
+    dp.add_handler(MessageHandler(Filters.document.file_extension("vcf"), handle_vcf))
+    dp.add_handler(MessageHandler(Filters.document.file_extension("txt"), handle_txt))
+
     dp.add_handler(MessageHandler(Filters.text, handle_text))
-    dp.add_handler(MessageHandler(Filters.document.mime_type("text/vcard"), handle_vcf))
 
     updater.start_polling()
     updater.idle()
 
-# 🔹 Start bot thread
+# 🔹 START THREAD
 threading.Thread(target=run_bot).start()
 
-# 🔹 Run Flask
+# 🔹 RUN FLASK
 port = int(os.environ.get("PORT", 10000))
 web.run(host="0.0.0.0", port=port)
