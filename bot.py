@@ -66,9 +66,9 @@ def handle_text(update: Update, context: CallbackContext):
         return
 
     if text == "📄 VCF to Text":
-    user_state[user_id] = {"mode": "vcf_to_txt", "step": "waiting_file"}
-    update.message.reply_text("📤 Send VCF file(s)")
-    return
+        user_state[user_id] = {"mode": "vcf_to_txt", "step": "waiting_file"}
+        update.message.reply_text("📤 Send VCF file(s)")
+        return
 
     # 🔄 Merge VCF button
     if text == "🔄 Merge VCF":
