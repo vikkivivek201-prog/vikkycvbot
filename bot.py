@@ -279,8 +279,6 @@ if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
         update.message.reply_text("Enter output TXT file name:")
         return
 
-    return
-
     # =========================
     # 🔄 MERGE VCF (NO SPAM)
     # =========================
