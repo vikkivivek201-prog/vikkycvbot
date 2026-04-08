@@ -303,7 +303,7 @@ def handle_files(update: Update, context: CallbackContext):
 # =========================
 # 🔄 MERGE VCF (NO SPAM)
 # =========================
-elif filename.endswith(".vcf") and state.get("mode") == "merge_vcf":
+    elif filename.endswith(".vcf") and state.get("mode") == "merge_vcf":
     path = f"{user_id}_{filename}"
     file.download(path)
 
