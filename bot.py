@@ -68,60 +68,58 @@ def handle_text(update: Update, context: CallbackContext):
         update.message.reply_text("Enter output TXT file name:")
         return
 
-# 🔄 Merge VCF button
-if text == "🔄 Merge VCF":
-    user_state[user_id] = {
-        "mode": "merge_vcf",
-        "step": "ask_filename"
-    }
-    update.message.reply_text("Enter output VCF file name:")
-    return
-
-# file name input
-if state and state.get("mode") == "merge_vcf" and state.get("step") == "ask_filename":
-    state["filename"] = text
-    state["step"] = "ask_prefix"
-    update.message.reply_text("Enter contact name prefix:")
-    return
-
-# prefix input
-if state and state.get("mode") == "merge_vcf" and state.get("step") == "ask_prefix":
-    state["prefix"] = text
-    state["step"] = "collecting"
-    state["all_numbers"] = []
-    update.message.reply_text("📤 Now send all VCF files. Type DONE when finished.")
-    return
-
-# DONE command
-if text == "DONE" and state and state.get("mode") == "merge_vcf":
-    numbers = state.get("all_numbers", [])
-
-    if not numbers:
-        update.message.reply_text("❌ No data found")
+    # 🔄 Merge VCF button
+    if text == "🔄 Merge VCF":
+        user_state[user_id] = {
+            "mode": "merge_vcf",
+            "step": "ask_filename"
+        }
+        update.message.reply_text("Enter output VCF file name:")
         return
 
-    # remove duplicates (optional)
-    numbers = list(set(numbers))
+    # file name input
+    if state and state.get("mode") == "merge_vcf" and state.get("step") == "ask_filename":
+        state["filename"] = text
+        state["step"] = "ask_prefix"
+        update.message.reply_text("Enter contact name prefix:")
+        return
 
-    vcf_data = ""
+    # prefix input
+    if state and state.get("mode") == "merge_vcf" and state.get("step") == "ask_prefix":
+        state["prefix"] = text
+        state["step"] = "collecting"
+        state["all_numbers"] = []
+        update.message.reply_text("📤 Now send all VCF files. Type DONE when finished.")
+        return
 
-    for i, num in enumerate(numbers):
-        vcf_data += "BEGIN:VCARD\nVERSION:3.0\n"
-        vcf_data += f"FN:{state['prefix']} {i+1}\n"
-        vcf_data += f"TEL;TYPE=CELL:{num}\nEND:VCARD\n"
+    # DONE command (merge vcf)
+    if text == "DONE" and state and state.get("mode") == "merge_vcf":
+        numbers = state.get("all_numbers", [])
 
-    filename = f"{state['filename']}.vcf"
+        if not numbers:
+            update.message.reply_text("❌ No data found")
+            return
 
-    with open(filename, "w") as f:
-        f.write(vcf_data)
+        numbers = list(set(numbers))
 
-    update.message.reply_document(open(filename, "rb"))
+        vcf_data = ""
+        for i, num in enumerate(numbers):
+            vcf_data += "BEGIN:VCARD\nVERSION:3.0\n"
+            vcf_data += f"FN:{state['prefix']} {i+1}\n"
+            vcf_data += f"TEL;TYPE=CELL:{num}\nEND:VCARD\n"
 
-    os.remove(filename)
-    user_state.pop(user_id)
+        filename = f"{state['filename']}.vcf"
 
-    update.message.reply_text("✅ All VCF merged into one file")
-    return
+        with open(filename, "w") as f:
+            f.write(vcf_data)
+
+        update.message.reply_document(open(filename, "rb"))
+
+        os.remove(filename)
+        user_state.pop(user_id)
+
+        update.message.reply_text("✅ All VCF merged into one file")
+        return
 
     if text == "📦 Split Text":
         update.message.reply_text("Use Text to VCF feature for splitting")
@@ -147,7 +145,7 @@ if text == "DONE" and state and state.get("mode") == "merge_vcf":
         update.message.reply_text("📤 Now send VCF file(s), type DONE when finished")
         return
 
-    # 🔹 DONE (merge complete)
+    # 🔹 DONE (VCF → TXT)
     if text == "DONE" and state and state.get("mode") == "vcf_to_txt":
         numbers = state.get("all_numbers", [])
 
@@ -227,7 +225,6 @@ if text == "DONE" and state and state.get("mode") == "merge_vcf":
         user_state.pop(user_id)
 
 # 🔹 FILE HANDLER
-
 def handle_files(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     file = update.message.document.get_file()
