@@ -20,7 +20,7 @@ main_menu = [
     ["📁 Text to VCF", "📄 VCF to Text"],
     ["Manual VCF", ]
     ["🔄 Merge VCF", "📦 Split Text"],
-    ["Get CTC Name" My Subscription"],
+    ["Get CTC Name", "My Subscription"],
 
 ]
 
