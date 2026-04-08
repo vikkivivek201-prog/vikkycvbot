@@ -296,7 +296,7 @@ elif filename.endswith(".vcf") and state.get("mode") == "merge_vcf":
 
     os.remove(path)
 
-    return
+                return
 
     # =========================
     # ❌ WRONG FILE
