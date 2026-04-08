@@ -64,9 +64,9 @@ def handle_text(update: Update, context: CallbackContext):
         return
 
     if text == "📄 VCF to Text":
-        user_state[user_id] = {"mode": "vcf_to_txt", "step": "ask_name"}
-        update.message.reply_text("Enter output TXT file name:")
-        return
+    user_state[user_id] = {"mode": "vcf_to_txt", "step": "waiting_file"}
+    update.message.reply_text("📤 Send VCF file(s)")
+    return
 
     # 🔄 Merge VCF button
     if text == "🔄 Merge VCF":
@@ -264,7 +264,7 @@ def handle_files(update: Update, context: CallbackContext):
             for line in f:
                 if line.startswith("TEL"):
                     num = line.split(":")[-1].strip()
-                    state["all_numbers"].append(num)
+                    state["all_numbers"].append(num)ss
 
         os.remove(path)
 
