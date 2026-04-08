@@ -273,10 +273,11 @@ if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
         os.remove(path)
 
 # 🔥 NAME MAANGO
+
 if "txt_name" not in state:
     state["step"] = "ask_name"
     update.message.reply_text("Enter output TXT file name:")
-    return
+        return
 
 # =========================
 # 🔄 MERGE VCF (NO SPAM)
