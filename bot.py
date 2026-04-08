@@ -18,8 +18,10 @@ ADMIN_ID = 5328734113
 
 main_menu = [
     ["📁 Text to VCF", "📄 VCF to Text"],
+    ["Manual VCF", ]
     ["🔄 Merge VCF", "📦 Split Text"],
-    ["⚓ Admin/Navy", "💎 Buy Premium"],
+    ["Get CTC Name" My Subscription"],
+
 ]
 
 user_state = {}
@@ -142,7 +144,7 @@ def handle_text(update: Update, context: CallbackContext):
         state["txt_name"] = text
         state["step"] = "collecting"
         state["all_numbers"] = []
-        update.message.reply_text("📤 Now send VCF file(s), type DONE when finished")
+        update.message.reply_text("📤 Now send VCF file(s), type Done when finished")
         return
 
     # 🔹 DONE (VCF → TXT)
@@ -234,7 +236,7 @@ def handle_files(update: Update, context: CallbackContext):
 
     # ❌ agar user ne option select nahi kiya
     if not state:
-        update.message.reply_text("⚠️ Pehle option select karo")
+        update.message.reply_text("⚠️ Please select a valid option")
         return
 
     # =========================
@@ -254,23 +256,30 @@ def handle_files(update: Update, context: CallbackContext):
     # 📄 VCF → TXT (MULTIPLE)
     # =========================
     if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
-        path = f"{user_id}_{filename}"
-        file.download(path)
 
-        if "all_numbers" not in state:
-            state["all_numbers"] = []
+    # 🔥 FIRST TIME FILE AAYA
+    if state.get("step") == "waiting_file":
+        state["all_numbers"] = []
+        state["step"] = "collecting"
 
-        with open(path, "r") as f:
-            for line in f:
-                if line.startswith("TEL"):
-                    num = line.split(":")[-1].strip()
-                    state["all_numbers"].append(num)ss
+    path = f"{user_id}_{filename}"
+    file.download(path)
 
-        os.remove(path)
+    with open(path, "r") as f:
+        for line in f:
+            if line.startswith("TEL"):
+                num = line.split(":")[-1].strip()
+                state["all_numbers"].append(num)
 
-        # 🔥 ek hi reply (optional)
-        update.message.reply_text("✅ File received")
+    os.remove(path)
+
+    # 🔥 FIRST FILE KE BAAD NAME MAANGO
+    if state.get("step") == "collecting" and "txt_name" not in state:
+        state["step"] = "ask_name"
+        update.message.reply_text("Enter output TXT file name:")
         return
+
+    return
 
     # =========================
     # 🔄 MERGE VCF (NO SPAM)
