@@ -66,7 +66,7 @@ def handle_text(update: Update, context: CallbackContext):
         return
 
     if text == "📄 VCF to Text":
-    user_state[user_id] = {
+        user_state[user_id] = {
         "mode": "vcf_to_txt",
         "numbers": []
     }
