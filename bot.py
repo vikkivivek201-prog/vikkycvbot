@@ -316,10 +316,19 @@ def handle_files(update: Update, context: CallbackContext):
     file.download(path)
 
     # TXT → VCF
-    if filename.endswith(".txt") and state.get("mode") == "txt_to_vcf":
-        state["file"] = path
-        state["step"] = "name"
-        update.message.reply_text("Enter Contact Name:")
+    if filename.endswith(".txt") and state.get("mode") == "collect":
+    with open(path) as f:
+        for line in f:
+            num = line.strip()
+            if num.isdigit():
+                state["numbers"].append(num)
+
+    os.remove(path)
+
+    update.message.reply_text(f"📊 Total Added: {len(state['numbers'])}")
+    return
+
+    update.message.reply_text("Enter Contact Name:")  
         return
 
     # VCF → TXT
