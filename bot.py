@@ -59,7 +59,7 @@ def handle_text(update: Update, context: CallbackContext):
     state = user_state.get(user_id)
 
     # 📁 TEXT TO VCF
-    if text == "📁 Text to VCF":
+if text == "📁 Text to VCF":
     user_state[user_id] = {
         "mode": "collect",
         "numbers": []
