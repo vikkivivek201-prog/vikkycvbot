@@ -79,7 +79,7 @@ def handle_text(update: Update, context: CallbackContext):
             if n.isdigit() and len(n) >= 8:
             state["numbers"].append(n)
 
-        update.message.reply_text(f"📥Collecting Contacts\n━━━━━━━━━━━━━━━📊 Added: {len(state['numbers'])}\nFinished!")
+        update.message.reply_text(f"📥Collecting Contacts\n━━━━━━━━━━━━━━━\n📊 Added: {len(state['numbers'])}\nFinished!")
         return
 
     # ✅ DONE
