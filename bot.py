@@ -64,11 +64,10 @@ if text == "📁 Text to VCF":
         "mode": "collect",
         "numbers": []
     }
-
     update.message.reply_text(
         "📥 Send Contacts\n━━━━━━━━━━━━━━━\n📂 Numbers / .txt\n\n✅ Finish Type → /done"
     )
-    return
+        return
 
     # 📄 VCF TO TEXT
     # 📥 COLLECT NUMBERS
