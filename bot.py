@@ -72,15 +72,17 @@ def handle_text(update: Update, context: CallbackContext):
 
     # 📥 COLLECT NUMBERS
     if state and state.get("mode") == "collect" and text != "/done":
-        nums = text.split()
+    nums = text.split()
 
-        for n in nums:
-            n = n.replace(" ", "").replace("-", "").replace("+", "")
-            if n.isdigit() and len(n) >= 8:
-                state["numbers"].append(n)
+    for n in nums:
+        n = n.replace(" ", "").replace("-", "").replace("+", "")
+        if n.isdigit() and len(n) >= 8:
+            state["numbers"].append(n)
 
-        update.message.reply_text("📥Collecting Contacts\n━━━━━━━━━━━━━━━\n📊 f"Added: {len(state['numbers'])}\nFinished!")
-        return
+    update.message.reply_text(
+        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n📊 Added: {len(state['numbers'])}"
+    )
+    return
 
     # ✅ DONE
     if text == "/done" and state and state.get("mode") == "collect":
