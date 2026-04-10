@@ -315,21 +315,21 @@ def handle_files(update: Update, context: CallbackContext):
     path = f"{user_id}_{filename}"
     file.download(path)
 
-    # TXT → VCF
+    # ✅ TXT → VCF
     if filename.endswith(".txt") and state.get("mode") == "collect":
-    with open(path) as f:
-        for line in f:
-            num = line.strip()
-            if num.isdigit():
-                state["numbers"].append(num)
+        with open(path) as f:
+            for line in f:
+                num = line.strip()
+                if num.isdigit():
+                    state["numbers"].append(num)
 
-    os.remove(path)
+        os.remove(path)
 
-    update.message.reply_text(f"📊 Total Added: {len(state['numbers'])}")
-    return
-
-    update.message.reply_text("Enter Contact Name:")  
+        update.message.reply_text(f"📊 Total Added: {len(state['numbers'])}")
         return
+
+    # ❌ Invalid file
+    update.message.reply_text("❌ Invalid file type")
 
     # VCF → TXT
     if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
