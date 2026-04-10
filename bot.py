@@ -300,7 +300,7 @@ END:VCARD
         update.message.reply_text("✅ Done")
         user_state.pop(user_id)
 
-# 🔹 FILE HANDLER
+#file handler
 def handle_files(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     file = update.message.document.get_file()
@@ -328,10 +328,7 @@ def handle_files(update: Update, context: CallbackContext):
         update.message.reply_text(f"📊 Total Added: {len(state['numbers'])}")
         return
 
-    # ❌ Invalid file
-    update.message.reply_text("❌ Invalid file type")
-
-    # VCF → TXT
+    # ✅ VCF → TXT
     if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
         with open(path) as f:
             for line in f:
@@ -342,7 +339,7 @@ def handle_files(update: Update, context: CallbackContext):
         os.remove(path)
         return
 
-    # MERGE VCF
+    # ✅ MERGE VCF
     if filename.endswith(".vcf") and state.get("mode") == "merge_vcf":
         if "all_numbers" not in state:
             state["all_numbers"] = []
@@ -356,6 +353,7 @@ def handle_files(update: Update, context: CallbackContext):
         os.remove(path)
         return
 
+    # ❌ LAST me rakho
     update.message.reply_text("❌ Invalid file type")
 
 # 🔹 ERROR
