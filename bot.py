@@ -59,14 +59,15 @@ def handle_text(update: Update, context: CallbackContext):
     state = user_state.get(user_id)
 
     # 📁 TEXT TO VCF
-if text == "📁 Text to VCF":
-    user_state[user_id] = {
-        "mode": "collect",
-        "numbers": []
-    }
-    update.message.reply_text(
-        "📥 Send Contacts\n━━━━━━━━━━━━━━━\n📂 Numbers / .txt\n\n✅ Finish Type → /done"
-    )
+    if text == "📁 Text to VCF":
+        user_state[user_id] = {
+            "mode": "collect",
+            "numbers": []
+        }
+
+        update.message.reply_text(
+            "📥 Send Contacts\n━━━━━━━━━━━━━━━\n📂 Numbers / .txt\n\n✅ Finish Type → /done"
+        )
         return
 
     # 📄 VCF TO TEXT
