@@ -59,6 +59,12 @@ def handle_text(update: Update, context: CallbackContext):
     state = user_state.get(user_id)
 
     # 📁 TEXT TO VCF
+def handle_text(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+    text = update.message.text
+    state = user_state.get(user_id)
+
+    # 📁 TEXT TO VCF
     if text == "📁 Text to VCF":
         user_state[user_id] = {
             "mode": "collect",
@@ -70,17 +76,16 @@ def handle_text(update: Update, context: CallbackContext):
         )
         return
 
-    # 📄 VCF TO TEXT
- # 📥 COLLECT NUMBERS
-if state and state.get("mode") == "collect" and text != "/done":
-    nums = text.split()
+    # 📥 COLLECT NUMBERS
+    if state and state.get("mode") == "collect" and text != "/done":
+        nums = text.split()
 
-    for n in nums:
-        if n.isdigit():
-            state["numbers"].append(n)
+        for n in nums:
+            if n.isdigit():
+                state["numbers"].append(n)
 
-    update.message.reply_text(f"📊 Added: {len(state['numbers'])}")
-    return
+        update.message.reply_text(f"📊 Added: {len(state['numbers'])}")
+        return
 
 
 # ✅ DONE
