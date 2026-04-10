@@ -77,7 +77,7 @@ def handle_text(update: Update, context: CallbackContext):
         for n in nums:
             n = n.replace(" ", "").replace("-", "").replace("+", "")
             if n.isdigit() and len(n) >= 8:
-            state["numbers"].append(n)
+                state["numbers"].append(n)
 
         update.message.reply_text("📥Collecting Contacts\n━━━━━━━━━━━━━━━\n📊 f"Added: {len(state['numbers'])}\nFinished!")
         return
