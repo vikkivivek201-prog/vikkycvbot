@@ -66,7 +66,7 @@ def handle_text(update: Update, context: CallbackContext):
         }
 
         update.message.reply_text(
-            "📥 Send Contacts\n⚬━━━━━━━━━━━━━━⚬\n📂 Numbers / .txt / .xlsx\n\n✅ Finish Type → /done"
+            "📥 Send Contacts\n═══════════════\n📂 Numbers / .txt / .xlsx\n\n✅ Finish Type → /done"
         )
         return
 
@@ -124,7 +124,7 @@ def handle_text(update: Update, context: CallbackContext):
         numbers = state["numbers"]
 
         update.message.reply_text(
-            f"🚀 Generating VCF Files\n⚬══════════════⚬\n📊 Total Contacts: {len(numbers)}\n⚡ Status: Processing..."
+            f"🚀 Generating VCF Files\n━━━━━━━━━━━━━━━\n📊 Total Contacts: {len(numbers)}\n⚡ Status: Processing..."
         )
 
         chunks = [numbers[i:i+limit] for i in range(0, len(numbers), limit)]
@@ -326,9 +326,33 @@ def handle_files(update: Update, context: CallbackContext):
 
         os.remove(path)
         update.message.reply_text(
-            f"📥 Collecting Contacts\n⚬━━━━━━━━━━━━━━⚬\n📊 Final Added: {len(state['numbers'])}\n✅ Finished!"
+            f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n📊 Final Added: {len(state['numbers'])}\n✅ Finished!"
         )
         return
+
+# ✅ XLSX → VCF
+    if filename.endswith(".xlsx") and state.get("mode") == "collect":
+    from openpyxl import load_workbook
+
+    wb = load_workbook(path)
+    sheet = wb.active
+
+    for row in sheet.iter_rows(values_only=True):
+        for cell in row:
+            if cell:
+                num = str(cell).strip()
+
+                num = num.replace(" ", "").replace("-", "").replace("+", "")
+
+                if num.isdigit() and len(num) >= 8:
+                    state["numbers"].append(num)
+
+    os.remove(path)
+
+    update.message.reply_text(
+        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n📊 Final Added: {len(state['numbers'])}\n✅ Finished!"
+    )
+    return
 
     # ✅ VCF → TXT
     if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
