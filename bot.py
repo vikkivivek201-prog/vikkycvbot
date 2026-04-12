@@ -20,7 +20,7 @@ def home():
     return "Bot is running!"
 
 # 🔹 Config
-TOKEN = os.getenv("8656250844:AAGCxiFYQBzWvHGyZOFkHepHlUoumBm_RC4")
+TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 
 main_menu = [
@@ -85,7 +85,10 @@ def handle_text(update: Update, context: CallbackContext):
             "mode": "vcf_to_txt",
             "numbers": [],
             "files": 0,
-            "msg_id": None
+            "msg_id": None,
+            elapsed = time.time() - state.get("start_time", time.time())
+            speed = state["files"] / elapsed if elapsed > 0 else state["files"]
+
         }
 
         update.message.reply_text(
@@ -401,8 +404,6 @@ def handle_files(update: Update, context: CallbackContext):
     if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
 
         state["files"] = state.get("files", 0) + 1
-        elapsed = time.time() - state.get("start_time", time.time())
-        speed = state["files"] / elapsed if elapsed > 0 else state["files"]
 
         with open(path) as f:
             for line in f:
@@ -416,10 +417,16 @@ def handle_files(update: Update, context: CallbackContext):
 
         os.remove(path)
 
+# fake total = 20 (ya jitna tu chahe)
+        total_files = 20  
+
+        progress = progress_bar(state["files"], total_files)
+
         text_msg = (
             f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n"
-            f"📁 Files Uploaded: {state['files']}\n"
-            f"📊 Extracted: {len(state['numbers'])}\n"
+            f"📁 Files Uploaded: {state['files']}/{total_files}\n"
+            f"📊 Extracted: {len(state['numbers'])}\n\n"
+            f"📊 Progress:\n{progress}\n\n"
             f"⏳ Status: Scanning...\n\n"
             f"📂 Keep sending files\n"
             f"✅ Finish Type → /done"
@@ -477,9 +484,8 @@ def run_bot():
     updater.start_polling()
     updater.idle()
 
-# 🔹 THREAD
-threading.Thread(target=run_bot).start()
+if __name__ == "__main__":
+    threading.Thread(target=run_bot).start()
 
-# 🔹 RUN FLASK
-port = int(os.environ.get("PORT", 10000))
-web.run(host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 10000))
+    web.run(host="0.0.0.0", port=port)
