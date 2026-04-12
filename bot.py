@@ -235,8 +235,7 @@ END:VCARD
         update.message.reply_text("📞 Contact admin")
         return
 
-
-    # DONE VCF → TXT
+# DONE VCF → TXT
     if text == "/done" and state and state.get("mode") == "vcf_to_txt":
 
         final_text = (
@@ -246,7 +245,7 @@ END:VCARD
             f"✅ Finished!"
         )
 
-    # ✅ SAME MESSAGE EDIT
+        # ✅ EDIT MESSAGE (if exists)
         if state.get("msg_id"):
             context.bot.edit_message_text(
                 chat_id=update.message.chat_id,
@@ -254,31 +253,7 @@ END:VCARD
                 text=final_text
             )
         else:
-        update.message.reply_text(final_text)
-
-    state["step"] = "ask_name"
-
-    update.message.reply_text(
-        "📝 Enter the name for your .txt file:\nExample: ExtractedList"
-        )
-        return
-
-
-
-
-
-
-
-
-
-    if text == "/done" and state and state.get("mode") == "vcf_to_txt":
-
-        update.message.reply_text(
-            f"📄 Final Result\n━━━━━━━━━━━━━━━\n"
-            f"📁 Files Processed: {state.get('files', 0)}\n"
-            f"📊 Total Extracted: {len(state['numbers'])}\n"
-            f"✅ Finished!"
-        )
+            update.message.reply_text(final_text)
 
         state["step"] = "ask_name"
 
