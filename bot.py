@@ -262,7 +262,7 @@ END:VCARD
             f.write("\n".join(state["numbers"]))
 
     update.message.reply_document(open(filename, "rb"))
-        os.remove(filename)
+    os.remove(filename)
 
         update.message.reply_text(
             "✅ Extracted Numbers\n\n✅ Extraction Completed Successfully! 🎉"
