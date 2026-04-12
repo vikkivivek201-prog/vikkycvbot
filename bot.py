@@ -328,6 +328,7 @@ def handle_files(update: Update, context: CallbackContext):
         update.message.reply_text(
             f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n📊 Final Added: {len(state['numbers'])}\n✅ Finished!"
         )
+        return
 
     # ✅ VCF → TXT
     if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
