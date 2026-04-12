@@ -332,25 +332,25 @@ def handle_files(update: Update, context: CallbackContext):
 
 # ✅ XLSX → VCF
     if filename.endswith(".xlsx") and state.get("mode") == "collect":
-    from openpyxl import load_workbook
+        from openpyxl import load_workbook
 
-    wb = load_workbook(path)
-    sheet = wb.active
+        wb = load_workbook(path)
+        sheet = wb.active
 
-    for row in sheet.iter_rows(values_only=True):
-        for cell in row:
-            if cell:
-                num = str(cell).strip()
+        for row in sheet.iter_rows(values_only=True):
+            for cell in row:
+                if cell:
+                    num = str(cell).strip()
 
-                num = num.replace(" ", "").replace("-", "").replace("+", "")
+                    num = num.replace(" ", "").replace("-", "").replace("+", "")
 
-                if num.isdigit() and len(num) >= 8:
+                    if num.isdigit() and len(num) >= 8:
                     state["numbers"].append(num)
 
-    os.remove(path)
+        os.remove(path)
 
-    update.message.reply_text(
-        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n📊 Final Added: {len(state['numbers'])}\n✅ Finished!"
+        update.message.reply_text(
+            f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n📊 Final Added: {len(state['numbers'])}\n✅ Finished!"
     )
     return
 
