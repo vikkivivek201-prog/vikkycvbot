@@ -264,9 +264,9 @@ END:VCARD
     update.message.reply_document(open(filename, "rb"))
     os.remove(filename)
 
-        update.message.reply_text(
-            "✅ Extracted Numbers\n\n✅ Extraction Completed Successfully! 🎉"
-        )
+    update.message.reply_text(
+        "✅ Extracted Numbers\n\n✅ Extraction Completed Successfully! 🎉"
+    )
 
         user_state.pop(user_id)
         return
@@ -393,7 +393,7 @@ def handle_files(update: Update, context: CallbackContext):
                     num = num.replace(" ", "").replace("-", "").replace("+", "")
 
                     if num.isdigit() and len(num) >= 8:
-    state["numbers"].append(num)
+                        state["numbers"].append(num)
 
         os.remove(path)
 
