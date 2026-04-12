@@ -86,9 +86,7 @@ def handle_text(update: Update, context: CallbackContext):
             "numbers": [],
             "files": 0,
             "msg_id": None,
-            elapsed = time.time() - state.get("start_time", time.time())
-            speed = state["files"] / elapsed if elapsed > 0 else state["files"]
-
+            "start_time": time.time()
         }
 
         update.message.reply_text(
@@ -421,6 +419,8 @@ def handle_files(update: Update, context: CallbackContext):
         total_files = 20  
 
         progress = progress_bar(state["files"], total_files)
+        elapsed = time.time() - state.get("start_time", time.time())
+        speed = state["files"] / elapsed if elapsed > 0 else 0
 
         text_msg = (
             f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n"
