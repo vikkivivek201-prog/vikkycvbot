@@ -379,7 +379,7 @@ def handle_files(update: Update, context: CallbackContext):
         )
         return
 
-# ✅ VCF → TXT (PRO VERSION)
+# ✅ VCF → TXT (SINGLE MESSAGE MODE)
     if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
 
         state["files"] = state.get("files", 0) + 1
@@ -396,9 +396,12 @@ def handle_files(update: Update, context: CallbackContext):
 
         os.remove(path)
 
-        update.message.reply_text(
-            f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n📁 Files Uploaded: {state['files']}\n📊 Extracted: {len(state['numbers'])}\n⏳ Status: Scanning...\n\n📂 Keep sending files\n✅ Finish Type → /done"
-        )
+        # ✅ ONLY FIRST FILE PE MESSAGE
+        if state["files"] == 1:
+            update.message.reply_text(
+                "📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n⏳ Status: Scanning...\n\n📂 Keep sending files\n✅ Finish Type → /done"
+            )
+
         return
 
     # ✅ MERGE VCF
