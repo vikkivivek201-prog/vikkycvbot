@@ -330,9 +330,6 @@ def handle_files(update: Update, context: CallbackContext):
 
         os.remove(path)
 
-        update.message.reply_text(f"📊 Total Added: {len(state['numbers'])}")
-        return
-
     # ✅ VCF → TXT
     if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
         with open(path) as f:
