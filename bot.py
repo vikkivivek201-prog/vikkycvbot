@@ -66,7 +66,7 @@ def handle_text(update: Update, context: CallbackContext):
         }
 
         update.message.reply_text(
-            "📥 Send Contacts\n━━━━━━━━━━━━━━━\n📂 Numbers / .txt\n\n✅ Finish Type → /done"
+            "📥 Send Contacts\n━━━━━━━━━━━━━━━\n📂 Numbers / .txt / .xlsx\n\n✅ Finish Type → /done"
         )
         return
 
@@ -74,15 +74,15 @@ def handle_text(update: Update, context: CallbackContext):
     if state and state.get("mode") == "collect" and text != "/done":
         nums = text.split()
 
-    for n in nums:
-        n = n.replace(" ", "").replace("-", "").replace("+", "")
-        if n.isdigit() and len(n) >= 8:
-            state["numbers"].append(n)
+        for n in nums:
+            n = n.replace(" ", "").replace("-", "").replace("+", "")
+            if n.isdigit() and len(n) >= 8:
+                state["numbers"].append(n)
 
-    update.message.reply_text(
-        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n📊 Added: {len(state['numbers'])}"
-    )
-    return
+        update.message.reply_text(
+            f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n📊 Final Added: {len(state['numbers'])}\n✅ Finished!"
+        )
+        return
 
     # ✅ DONE
     if text == "/done" and state and state.get("mode") == "collect":
@@ -91,35 +91,35 @@ def handle_text(update: Update, context: CallbackContext):
             return
 
         state["mode"] = "ask_name"
-        update.message.reply_text("1️⃣ VCF File Name?")
+        update.message.reply_text("1️⃣ VCF File Name?\n(Example: Brazil)")
         return
 
     # STEP 1
     if state and state.get("mode") == "ask_name":
         state["file_name"] = text
         state["mode"] = "ask_prefix"
-        update.message.reply_text("2️⃣ Contact Name Prefix?")
+        update.message.reply_text("2️⃣ Contact Name Prefix?\n(Example: Rule Test)")
         return
 
     # STEP 2
     if state and state.get("mode") == "ask_prefix":
         state["prefix"] = text
         state["mode"] = "ask_start_vcf"
-        update.message.reply_text("3️⃣ VCF File Starting Number?")
+        update.message.reply_text("3️⃣ VCF File Starting Number?\n(Example: 1)")
         return
 
     # STEP 3
     if state and state.get("mode") == "ask_start_vcf":
         state["vcf_start"] = int(text)
         state["mode"] = "ask_contact_start"
-        update.message.reply_text("4️⃣ Contact Starting Number?")
+        update.message.reply_text("4️⃣ Contact Starting Number?\n(Example: 1)")
         return
 
     # STEP 4
     if state and state.get("mode") == "ask_contact_start":
         state["contact_start"] = int(text)
         state["mode"] = "ask_limit"
-        update.message.reply_text("5️⃣ Contacts per VCF file?")
+        update.message.reply_text("5️⃣ Contacts per VCF file?\n(Example: 50)")
         return
 
     # FINAL STEP
