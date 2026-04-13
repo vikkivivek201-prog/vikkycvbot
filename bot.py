@@ -277,23 +277,21 @@ END:VCARD
         return
 
 # NAME INPUT
+# NAME INPUT
     if state and state.get("mode") == "vcf_to_txt" and state.get("step") == "ask_name":
         filename = f"{text}.txt"
 
         with open(filename, "w") as f:
             f.write("\n".join(state["numbers"]))
 
+        # 📄 Send file with ONLY caption
         update.message.reply_document(
             document=open(filename, "rb"),
-            caption=(
-                f"📄 {text}.txt\n"
-                "━━━━━━━━━━━━━━━\n"
-                f"📁 Files Processed: {state.get('files', 0)}\n"
-                f"📊 Total Extracted: {len(state['numbers'])}\n\n"
-                "✅ Extracted Numbers\n"
-                "🎉 Extraction Completed Successfully!"
-            )
+            caption="✅ Extracted Numbers"
         )
+
+        # 🎉 Only this reply
+        update.message.reply_text("🎉 Extraction Completed Successfully!")
 
         os.remove(filename)
         user_state.pop(user_id)
@@ -361,26 +359,25 @@ def animate_progress(context, chat_id, msg_id, state):
         total = max(state.get("total_lines", 1), 1)
         done = state.get("processed_lines", 0)
 
-        # ✅ REAL SPEED (last 0.5 sec ka)
-        now = time.time()
-        speed = (done - last_done) / (now - last_time) if (now - last_time) > 0 else 0
-        last_done = done
-        last_time = now
-
         percent = min(int((done / total) * 100), 100)
 
         filled = int(percent / 5)
         bar = "█" * filled + "░" * (20 - filled)
 
+        now = time.time()
+        speed = (done - last_done) / (now - last_time) if (now - last_time) > 0 else 0
+        last_done = done
+        last_time = now
+
         text_msg = (
-            f"🔎 VCF SCANNING\n"
+            f"🚀 VCF SCANNING\n"
             f"━━━━━━━━━━━━━━━\n\n"
             f"📁 Files: {state.get('files', 0)}\n"
             f"📊 Extracted: {len(state.get('numbers', []))}\n\n"
             f"📈 Progress: {bar} {percent}%\n\n"
             f"⚡ Speed: {speed:.0f} lines/sec\n"
-            f"🔄 {done}/{total} lines"
-            f"Finish Type: /done"
+            f"🔄 {done}/{total} lines\n\n"
+            f"👉 Finish Type: /done"
         )
 
         try:
@@ -393,20 +390,26 @@ def animate_progress(context, chat_id, msg_id, state):
             pass
 
 def process_vcf_file(path, state):
+    # 👉 Pehle total lines count karo
     with open(path, encoding="utf-8", errors="ignore") as f:
-        for line in f:
-            state["total_lines"] += 1
+        lines = f.readlines()
 
-            line = line.strip()
+    total = len(lines)
+    state["total_lines"] += total
 
-            if "TEL" in line.upper():
-                num = line.split(":")[-1].strip()
-                num = num.replace(" ", "").replace("-", "").replace("+", "")
+    # 👉 Ab real processing
+    for line in lines:
+        line = line.strip()
 
-                if num.isdigit() and len(num) >= 8:
-                    state["numbers"].append(num)
+        if "TEL" in line.upper():
+            num = line.split(":")[-1].strip()
+            num = num.replace(" ", "").replace("-", "").replace("+", "")
 
-            state["processed_lines"] += 1
+            if num.isdigit() and len(num) >= 8:
+                state["numbers"].append(num)
+
+        # 👉 REAL increment (1 by 1 sync)
+        state["processed_lines"] += 1
 
     os.remove(path)
 
