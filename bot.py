@@ -343,6 +343,7 @@ END:VCARD
         user_state.pop(user_id)
 
 def animate_progress(context, chat_id, msg_id, state):
+
     frames = [
         "█░░░░░░░░░ 100%",
         "██░░░░░░░░ 100%",
@@ -354,6 +355,14 @@ def animate_progress(context, chat_id, msg_id, state):
         "████████░░ 100%",
         "█████████░ 100%",
         "██████████ 100%",
+        "█████████░ 100%",
+        "████████░░ 100%",
+        "███████░░░ 100%",
+        "██████░░░░ 100%",
+        "█████░░░░░ 100%",
+        "████░░░░░░",
+        "███░░░░░░░",
+        "██░░░░░░░░",
     ]
 
     while state.get("animating", True):
