@@ -459,23 +459,20 @@ def handle_files(update: Update, context: CallbackContext):
                 daemon=True
             ).start()
 
-        with open(path) as f:
-            lines = f.readlines()
+            with open(path) as f:
+                lines = f.readlines()
+                state["total_lines"] += len(lines)
+                for line in lines:
+                    if line.startswith("TEL"):
+                        num = line.split(":")[-1].strip()
+                        num = num.replace(" ", "").replace("-", "").replace("+", "")
 
-        # 👉 correct counting
-        state["total_lines"] += len(lines)
-        for line in lines:
-            state["processed_lines"] += 1
+                        if num.isdigit() and len(num) >= 8:
+                            state["numbers"].append(num)
 
-            if line.startswith("TEL"):
-                num = line.split(":")[-1].strip()
-                num = num.replace(" ", "").replace("-", "").replace("+", "")
-
-                if num.isdigit() and len(num) >= 8:
-                    state["numbers"].append(num)
-
-        os.remove(path)
-        return
+    # 🔥 UPDATE PROGRESS SLOWLY (IMPORTANT)
+                    state["processed_lines"] += 1
+                    time.sleep(0.01)
 
 
         # 👉 FIRST TIME START ANIMATION
