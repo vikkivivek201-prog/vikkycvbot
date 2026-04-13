@@ -416,6 +416,7 @@ def process_vcf_file(path, state):
     # 🔥 FILE OPEN KARTE HI TOTAL ADD KAR
     line_count = sum(1 for _ in open(path, encoding="utf-8", errors="ignore"))
     state["total_lines"] += line_count
+
     with open(path, encoding="utf-8", errors="ignore") as f:
         for line in f:
             line = line.strip()
@@ -427,10 +428,11 @@ def process_vcf_file(path, state):
 
                     if num.isdigit() and len(num) >= 8:
                         state["numbers"].append(num)
-                    except:
-                        pass
 
-                    state["processed_lines"] += 1
+                except:
+                    pass
+
+            state["processed_lines"] += 1
 
     os.remove(path)
 
