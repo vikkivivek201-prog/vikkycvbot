@@ -349,21 +349,33 @@ def animate_progress(context, chat_id, msg_id, state):
     last_done = 0
     last_time = time.time()
 
+    display_percent = 0  # 🔥 ye smooth animation ke liye
+
+    done_button_sent = False
+
     while state.get("animating"):
-        time.sleep(0.5)
+        time.sleep(0.3)
 
         total = max(state.get("total_lines", 1), 1)
         done = state.get("processed_lines", 0)
 
-        # ✅ REAL SPEED (last 0.5 sec ka)
+        # 🔥 REAL percent
+        real_percent = int((done / total) * 100) if total else 0
+
+        # 🔥 SMOOTH increase (jump nahi karega)
+        if display_percent < real_percent:
+            display_percent += 1
+        else:
+            display_percent = real_percent
+
+        # 🔥 REAL SPEED
         now = time.time()
         speed = (done - last_done) / (now - last_time) if (now - last_time) > 0 else 0
         last_done = done
         last_time = now
 
-        percent = min(int((done / total) * 100), 100)
-
-        filled = int(percent / 5)
+        # 🔥 bar
+        filled = int(display_percent / 5)
         bar = "█" * filled + "░" * (20 - filled)
 
         text_msg = (
@@ -371,7 +383,7 @@ def animate_progress(context, chat_id, msg_id, state):
             f"━━━━━━━━━━━━━━━\n\n"
             f"📁 Files: {state.get('files', 0)}\n"
             f"📊 Extracted: {len(state.get('numbers', []))}\n\n"
-            f"{bar} {percent}%\n\n"
+            f"{bar} {display_percent}%\n\n"
             f"⚡ Speed: {speed:.0f} lines/sec\n"
             f"🔄 {done}/{total} lines"
         )
@@ -384,6 +396,18 @@ def animate_progress(context, chat_id, msg_id, state):
             )
         except:
             pass
+
+        # ✅ DONE BUTTON
+        if display_percent == 100 and not done_button_sent:
+            context.bot.send_message(
+                chat_id=chat_id,
+                text="✅ Finished Scanning\nClick below 👇",
+                reply_markup=ReplyKeyboardMarkup(
+                    [["/done"]],
+                    resize_keyboard=True
+                )
+            )
+            done_button_sent = True
 
 def process_vcf_file(path, state):
     with open(path, encoding="utf-8", errors="ignore") as f:
