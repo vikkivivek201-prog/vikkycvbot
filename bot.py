@@ -355,7 +355,7 @@ def animate_progress(context, chat_id, msg_id, state):
     dot_index = 0
 
     while state.get("animating"):
-        time.sleep(0.12)
+        time.sleep(0.05)
         if state.get("active_files", 0) == 0 and state.get("processed_lines", 0) >= state.get("total_lines", 0):
             state["animating"] = False
         dot = dots[dot_index % len(dots)]
@@ -372,7 +372,7 @@ def animate_progress(context, chat_id, msg_id, state):
 
         # 🔥 smooth jump to next step
         if display_percent < step_percent:
-            display_percent += 10
+            display_percent += 5
         else:
             display_percent = step_percent
 
@@ -381,6 +381,8 @@ def animate_progress(context, chat_id, msg_id, state):
         # ⚡ REAL SPEED
         now = time.time()
         speed = (done - last_done) / (now - last_time) if (now - last_time) > 0 else 0
+        if speed < 1:
+            speed = 1
         last_done = done
         last_time = now
 
@@ -411,26 +413,24 @@ def animate_progress(context, chat_id, msg_id, state):
             pass
 
 def process_vcf_file(path, state):
+    # 🔥 FILE OPEN KARTE HI TOTAL ADD KAR
+    line_count = sum(1 for _ in open(path, encoding="utf-8", errors="ignore"))
+    state["total_lines"] += line_count
     with open(path, encoding="utf-8", errors="ignore") as f:
-        lines = f.readlines()
+        for line in f:
+            line = line.strip()
 
-    # 🔥 IMPORTANT LINE (YAHAN)
-    state["total_lines"] += len(lines)
+            if "TEL" in line.upper():
+                try:
+                    num = line.split(":")[-1].strip()
+                    num = num.replace(" ", "").replace("-", "").replace("+", "")
 
-    for line in lines:
-        line = line.strip()
+                    if num.isdigit() and len(num) >= 8:
+                        state["numbers"].append(num)
+                    except:
+                        pass
 
-        if "TEL" in line.upper():
-            try:
-                num = line.split(":")[-1].strip()
-                num = num.replace(" ", "").replace("-", "").replace("+", "")
-
-                if num.isdigit() and len(num) >= 8:
-                    state["numbers"].append(num)
-            except:
-                pass
-
-        state["processed_lines"] += 1
+                    state["processed_lines"] += 1
 
     os.remove(path)
 
