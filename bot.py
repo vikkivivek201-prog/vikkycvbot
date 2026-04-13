@@ -346,27 +346,37 @@ END:VCARD
         user_state.pop(user_id)
 
 def animate_progress(context, chat_id, msg_id, state):
-
     while state.get("animating"):
-        time.sleep(0.5)
+        time.sleep(0.4)
 
         total = state.get("total_lines", 1)
         done = state.get("processed_lines", 0)
 
         percent = int((done / total) * 100) if total else 0
 
-        filled = int(percent / 10)
-        bar = "█" * filled + "░" * (10 - filled)
+        # 🔥 Smooth bar (20 blocks)
+        filled = int(percent / 5)
+        bar = "█" * filled + "░" * (20 - filled)
 
+        # ⏱ Time & Speed
         elapsed = time.time() - state.get("start_time", time.time())
         speed = done / elapsed if elapsed > 0 else 0
 
+        # ⏳ ETA calculation
+        remaining = total - done
+        eta = int(remaining / speed) if speed > 0 else 0
+
+        # 🔥 Stylish UI
         text_msg = (
-            f"⚡ Speed: {speed:.2f} lines/sec\n"
-            f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n"
+            f"🚀 VCF SCANNING IN PROGRESS\n"
+            f"━━━━━━━━━━━━━━━━━━━\n\n"
             f"📁 Files: {state.get('files', 0)}\n"
             f"📊 Extracted: {len(state.get('numbers', []))}\n\n"
-            f"📊 Progress:\n{bar} {percent}%\n\n"
+            f"📈 Progress:\n"
+            f"{bar} {percent}%\n\n"
+            f"⚡ Speed: {speed:.2f} lines/sec\n"
+            f"⏱ Time: {int(elapsed)}s\n"
+            f"⌛ ETA: {eta}s\n\n"
             f"🔄 {done}/{total} lines"
         )
 
@@ -378,8 +388,6 @@ def animate_progress(context, chat_id, msg_id, state):
             )
         except:
             pass
-
-        time.sleep(0.5)
 
 def process_vcf_file(path, state):
     with open(path) as f:
@@ -396,7 +404,7 @@ def process_vcf_file(path, state):
                 state["numbers"].append(num)
 
         state["processed_lines"] += 1
-        time.sleep(0.005)
+        time.sleep(0.002)
         os.remove(path)
 
 # 🔹 FILE HANDLER
