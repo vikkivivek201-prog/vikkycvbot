@@ -346,60 +346,34 @@ END:VCARD
         user_state.pop(user_id)
 
 def animate_progress(context, chat_id, msg_id, state):
-
     last_done = 0
     last_time = time.time()
 
-    dots = ["", "•", "••", "•••"]
-    dot_index = 0
-
     while state.get("animating"):
-        time.sleep(0.05)
+        time.sleep(0.5)
 
         total = max(state.get("total_lines", 1), 1)
         done = state.get("processed_lines", 0)
 
-        # 🔥 STOP CONDITION (IMPORTANT)
-        if state.get("active_files", 0) == 0 and done >= total:
-            state["animating"] = False
-            display_percent = 100
-        else:
-            # 🔥 REAL PERCENT
-            real_percent = int((done / total) * 100)
-
-            # 🔥 STEP BASED (10-20-30...)
-            display_percent = ((real_percent + 9) // 10) * 10
-            display_percent = min(display_percent, 100)
-
-        # ⚡ REAL SPEED
+        # ✅ REAL SPEED (last 0.5 sec ka)
         now = time.time()
         speed = (done - last_done) / (now - last_time) if (now - last_time) > 0 else 0
-        if speed < 1:
-            speed = 1
-
         last_done = done
         last_time = now
 
-        # 🔥 PROGRESS BAR (20 blocks)
-        filled = int(display_percent / 5)
+        percent = min(int((done / total) * 100), 100)
+
+        filled = int(percent / 5)
         bar = "█" * filled + "░" * (20 - filled)
 
-        # 🔥 DOT ANIMATION
-        dot = dots[dot_index % len(dots)]
-        dot_index += 1
-
-        # 🔥 DONE MESSAGE
-        done_text = "\n\nType /done to generate file" if display_percent == 100 else ""
-
         text_msg = (
-            f"🔎 VCF SCANNING{dot}\n"
+            f"🚀 VCF SCANNING\n"
             f"━━━━━━━━━━━━━━━\n\n"
             f"📁 Files: {state.get('files', 0)}\n"
             f"📊 Extracted: {len(state.get('numbers', []))}\n\n"
-            f"📈 Progress: {bar} {display_percent}%\n\n"
+            f"📈 Progress: {bar} {percent}%\n\n"
             f"⚡ Speed: {speed:.0f} lines/sec\n"
             f"🔄 {done}/{total} lines"
-            f"{done_text}"
         )
 
         try:
@@ -412,32 +386,22 @@ def animate_progress(context, chat_id, msg_id, state):
             pass
 
 def process_vcf_file(path, state):
-
-    # 🔥 LINE COUNT ADD (CORRECT WAY)
     with open(path, encoding="utf-8", errors="ignore") as f:
-        lines = f.readlines()
+        for line in f:
+            state["total_lines"] += 1
 
-    state["total_lines"] += len(lines)
+            line = line.strip()
 
-    for line in lines:
-        line = line.strip()
-
-        if "TEL" in line.upper():
-            try:
+            if "TEL" in line.upper():
                 num = line.split(":")[-1].strip()
                 num = num.replace(" ", "").replace("-", "").replace("+", "")
 
                 if num.isdigit() and len(num) >= 8:
                     state["numbers"].append(num)
-            except:
-                pass
 
-        state["processed_lines"] += 1
+            state["processed_lines"] += 1
 
     os.remove(path)
-
-    # 🔥 VERY IMPORTANT
-    state["active_files"] -= 1
 
 # 🔹 FILE HANDLER
 def handle_files(update: Update, context: CallbackContext):
@@ -502,17 +466,14 @@ def handle_files(update: Update, context: CallbackContext):
 
 # ✅ VCF → TXT (SINGLE MESSAGE MODE)
     if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
-        state["active_files"] = state.get("active_files", 0) + 1
 
     # 👉 start animation (only once)
         if not state.get("msg_id"):
             msg = update.message.reply_text("📄 Starting...")
             state["msg_id"] = msg.message_id
             state["animating"] = True
-
             state["total_lines"] = 0
             state["processed_lines"] = 0
-            state["active_files"] = 0
 
             threading.Thread(
                 target=animate_progress,
