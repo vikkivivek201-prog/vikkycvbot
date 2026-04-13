@@ -349,34 +349,37 @@ def animate_progress(context, chat_id, msg_id, state):
     last_done = 0
     last_time = time.time()
 
-    display_percent = 0  # 🔥 ye smooth animation ke liye
-
-    done_button_sent = False
+    display_percent = 0
 
     while state.get("animating"):
-        time.sleep(0.1)
+        time.sleep(0.15)  # 🔥 faster UI
 
         total = max(state.get("total_lines", 1), 1)
         done = state.get("processed_lines", 0)
 
-        # 🔥 REAL percent
-        real_percent = int((done / total) * 100) if total else 0
+        # real percent
+        real_percent = int((done / total) * 100)
 
-        # 🔥 SMOOTH increase (jump nahi karega)
+        # fast smooth increase
         if display_percent < real_percent:
-            display_percent += 1
+            display_percent += 2   # 🔥 speed of % increase (change 1→2)
         else:
             display_percent = real_percent
 
-        # 🔥 REAL SPEED
+        display_percent = min(display_percent, 100)
+
+        # speed
         now = time.time()
         speed = (done - last_done) / (now - last_time) if (now - last_time) > 0 else 0
         last_done = done
         last_time = now
 
-        # 🔥 bar
+        # bar
         filled = int(display_percent / 5)
         bar = "█" * filled + "░" * (20 - filled)
+
+        # ✅ DONE TEXT ADD
+        done_text = "\n\nType /done to generate file" if display_percent == 100 else ""
 
         text_msg = (
             f"🚀 VCF SCANNING\n"
@@ -386,6 +389,7 @@ def animate_progress(context, chat_id, msg_id, state):
             f"📈 Progress: {bar} {display_percent}%\n\n"
             f"⚡ Speed: {speed:.0f} lines/sec\n"
             f"🔄 {done}/{total} lines"
+            f"{done_text}"
         )
 
         try:
@@ -396,18 +400,6 @@ def animate_progress(context, chat_id, msg_id, state):
             )
         except:
             pass
-
-        # ✅ DONE BUTTON
-        if display_percent == 100 and not done_button_sent:
-            context.bot.send_message(
-                chat_id=chat_id,
-                text="✅ Finished Scanning\nClick below 👇",
-                reply_markup=ReplyKeyboardMarkup(
-                    [["/done"]],
-                    resize_keyboard=True
-                )
-            )
-            done_button_sent = True
 
 def process_vcf_file(path, state):
     with open(path, encoding="utf-8", errors="ignore") as f:
