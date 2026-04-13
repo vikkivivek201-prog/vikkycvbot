@@ -346,37 +346,33 @@ END:VCARD
         user_state.pop(user_id)
 
 def animate_progress(context, chat_id, msg_id, state):
-    while state.get("animating"):
-        time.sleep(0.4)
+    last_done = 0
+    last_time = time.time()
 
-        total = max(state.get("total_lines", 1), state.get("processed_lines", 1))
+    while state.get("animating"):
+        time.sleep(0.5)
+
+        total = max(state.get("total_lines", 1), 1)
         done = state.get("processed_lines", 0)
+
+        # ✅ REAL SPEED (last 0.5 sec ka)
+        now = time.time()
+        speed = (done - last_done) / (now - last_time) if (now - last_time) > 0 else 0
+        last_done = done
+        last_time = now
 
         percent = min(int((done / total) * 100), 100)
 
-        # 🔥 Smooth bar (20 blocks)
         filled = int(percent / 5)
         bar = "█" * filled + "░" * (20 - filled)
 
-        # ⏱ Time & Speed
-        elapsed = time.time() - state.get("start_time", time.time())
-        speed = max(done / elapsed, 1) if elapsed > 0 else 1
-
-        # ⏳ ETA calculation
-        remaining = total - done
-        eta = int(remaining / speed) if speed > 0 else 0
-
-        # 🔥 Stylish UI
         text_msg = (
-            f"🚀 VCF SCANNING IN PROGRESS\n"
-            f"━━━━━━━━━━━━━━━━━━━\n\n"
+            f"🚀 VCF SCANNING\n"
+            f"━━━━━━━━━━━━━━━\n\n"
             f"📁 Files: {state.get('files', 0)}\n"
             f"📊 Extracted: {len(state.get('numbers', []))}\n\n"
-            f"📈 Progress:\n"
             f"{bar} {percent}%\n\n"
-            f"⚡ Speed: {speed:.2f} lines/sec\n"
-            f"⏱ Time: {int(elapsed)}s\n"
-            f"⌛ ETA: {eta}s\n\n"
+            f"⚡ Speed: {speed:.0f} lines/sec\n"
             f"🔄 {done}/{total} lines"
         )
 
@@ -391,26 +387,19 @@ def animate_progress(context, chat_id, msg_id, state):
 
 def process_vcf_file(path, state):
     with open(path, encoding="utf-8", errors="ignore") as f:
-        lines = f.readlines()
+        for line in f:
+            state["total_lines"] += 1
 
-    # ✅ safe update
-    state["total_lines"] += len(lines)
+            line = line.strip()
 
-    for line in lines:
-        line = line.strip()
-
-        # 🔥 FIX: better detection
-        if "TEL" in line.upper():
-            try:
+            if "TEL" in line.upper():
                 num = line.split(":")[-1].strip()
                 num = num.replace(" ", "").replace("-", "").replace("+", "")
 
                 if num.isdigit() and len(num) >= 8:
                     state["numbers"].append(num)
-            except:
-                pass
 
-        state["processed_lines"] += 1
+            state["processed_lines"] += 1
 
     os.remove(path)
 
