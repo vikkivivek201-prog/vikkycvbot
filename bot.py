@@ -389,6 +389,32 @@ def animate_progress(context, chat_id, msg_id, state):
         except:
             pass
 
+def vcf_worker(state):
+
+    # 👉 total fix first
+    for file_lines in state["file_queue"]:
+        state["total_lines"] += len(file_lines)
+
+    # 👉 per file processing
+    for idx, file_lines in enumerate(state["file_queue"]):
+
+        state["current_file"] = idx + 1
+        state["file_total"] = len(file_lines)
+        state["file_progress"] = 0
+
+        for line in file_lines:
+            line = line.strip()
+
+            if "TEL" in line.upper():
+                num = line.split(":")[-1].strip()
+                num = num.replace(" ", "").replace("-", "").replace("+", "")
+
+                if num.isdigit() and len(num) >= 8:
+                    state["numbers"].append(num)
+
+            state["processed_lines"] += 1
+            state["file_progress"] += 1
+
 def process_vcf_lines(lines, state):
     for line in lines:
         line = line.strip()
@@ -402,26 +428,6 @@ def process_vcf_lines(lines, state):
 
         # 👉 PERFECT SYNC increment
         state["processed_lines"] += 1
-
-def vcf_worker(state):
-
-    # 👉 FIRST calculate total properly
-    for file_lines in state["file_queue"]:
-        state["total_lines"] += len(file_lines)
-
-    # 👉 process sequentially
-    for file_lines in state["file_queue"]:
-        for line in file_lines:
-            line = line.strip()
-
-            if "TEL" in line.upper():
-                num = line.split(":")[-1].strip()
-                num = num.replace(" ", "").replace("-", "").replace("+", "")
-
-                if num.isdigit() and len(num) >= 8:
-                    state["numbers"].append(num)
-
-            state["processed_lines"] += 1
 
 # 🔹 FILE HANDLER
 def handle_files(update: Update, context: CallbackContext):
@@ -484,10 +490,11 @@ def handle_files(update: Update, context: CallbackContext):
         )
         return
 
-# ✅ VCF → TXT (NEW SYSTEM)
+
+# ✅ VCF → TXT (QUEUE SYSTEM)
     if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
 
-     # 👉 start animation (only once)
+    # 👉 start only once
         if not state.get("msg_id"):
             msg = update.message.reply_text("📄 Starting...")
             state["msg_id"] = msg.message_id
@@ -495,18 +502,21 @@ def handle_files(update: Update, context: CallbackContext):
             state["total_lines"] = 0
             state["processed_lines"] = 0
             state["file_queue"] = []
+            state["current_file"] = 0
+            state["file_progress"] = 0
+            state["file_total"] = 0
 
             threading.Thread(
                 target=vcf_worker,
                 args=(state,),
                 daemon=True
-            ).start()
+                ).start()
 
-        # 👉 read file
+    # 👉 read file
         with open(path, encoding="utf-8", errors="ignore") as f:
             lines = f.readlines()
 
-        # 👉 add to queue (NO processing here)
+    # 👉 queue me add karo
         state["file_queue"].append(lines)
 
         return
