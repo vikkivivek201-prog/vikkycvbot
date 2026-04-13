@@ -354,7 +354,7 @@ def animate_progress(context, chat_id, msg_id, state):
     done_button_sent = False
 
     while state.get("animating"):
-        time.sleep(0.3)
+        time.sleep(0.1)
 
         total = max(state.get("total_lines", 1), 1)
         done = state.get("processed_lines", 0)
@@ -383,7 +383,7 @@ def animate_progress(context, chat_id, msg_id, state):
             f"━━━━━━━━━━━━━━━\n\n"
             f"📁 Files: {state.get('files', 0)}\n"
             f"📊 Extracted: {len(state.get('numbers', []))}\n\n"
-            f"{bar} {display_percent}%\n\n"
+            f"📈 Progress: {bar} {display_percent}%\n\n"
             f"⚡ Speed: {speed:.0f} lines/sec\n"
             f"🔄 {done}/{total} lines"
         )
