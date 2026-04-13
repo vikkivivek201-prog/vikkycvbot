@@ -467,8 +467,6 @@ def handle_files(update: Update, context: CallbackContext):
         for line in lines:
             state["processed_lines"] += 1
 
-            time.sleep(0.001)
-
             if line.startswith("TEL"):
                 num = line.split(":")[-1].strip()
                 num = num.replace(" ", "").replace("-", "").replace("+", "")
