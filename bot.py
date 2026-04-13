@@ -412,30 +412,31 @@ def animate_progress(context, chat_id, msg_id, state):
             pass
 
 def process_vcf_file(path, state):
-    # 🔥 FILE OPEN KARTE HI TOTAL ADD KAR
-    line_count = sum(1 for _ in open(path, encoding="utf-8", errors="ignore"))
-    state["total_lines"] += line_count
 
+    # 🔥 LINE COUNT ADD (CORRECT WAY)
     with open(path, encoding="utf-8", errors="ignore") as f:
-        for line in f:
-            line = line.strip()
+        lines = f.readlines()
 
-            if "TEL" in line.upper():
-                try:
-                    num = line.split(":")[-1].strip()
-                    num = num.replace(" ", "").replace("-", "").replace("+", "")
+    state["total_lines"] += len(lines)
 
-                    if num.isdigit() and len(num) >= 8:
-                        state["numbers"].append(num)
+    for line in lines:
+        line = line.strip()
 
-                except:
-                    pass
+        if "TEL" in line.upper():
+            try:
+                num = line.split(":")[-1].strip()
+                num = num.replace(" ", "").replace("-", "").replace("+", "")
 
-            state["processed_lines"] += 1
+                if num.isdigit() and len(num) >= 8:
+                    state["numbers"].append(num)
+            except:
+                pass
+
+        state["processed_lines"] += 1
 
     os.remove(path)
 
-    # 🔥 ACTIVE FILE CONTROL
+    # 🔥 VERY IMPORTANT
     state["active_files"] -= 1
 
 # 🔹 FILE HANDLER
@@ -508,8 +509,10 @@ def handle_files(update: Update, context: CallbackContext):
             msg = update.message.reply_text("📄 Starting...")
             state["msg_id"] = msg.message_id
             state["animating"] = True
+
             state["total_lines"] = 0
             state["processed_lines"] = 0
+            state["active_files"] = 0
 
             threading.Thread(
                 target=animate_progress,
