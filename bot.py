@@ -473,6 +473,9 @@ def error(update, context):
 # 🔹 RUN BOT
 def run_bot():
     print("Bot is starting")
+
+    if not TOKEN:
+        print("BOT_TOKEN missing")
     updater = Updater(TOKEN)
     dp = updater.dispatcher
 
