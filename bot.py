@@ -394,17 +394,27 @@ def dot_animation(context, chat_id, msg_id, state):
     dots = ["●○○", "○●○", "○○●"]
     i = 0
 
-    while state.get("animating"):
+    while state.get("animating", False):
+        time.sleep(0.8)
+
         try:
+            text = (
+                f"📄 Scanning VCF Files {dots[i % 3]}\n"
+                f"━━━━━━━━━━━━━━━\n"
+                f"📁 Files: {state.get('files', 0)}\n"
+                f"📊 Extracted: {len(state.get('numbers', []))}"
+            )
+
             context.bot.edit_message_text(
                 chat_id=chat_id,
                 message_id=msg_id,
-                text=f"📄 Scanning VCF file... {dots[i % 3]}"
+                text=text
             )
-            i += 1
-            time.sleep(0.6)
-        except:
+
+        except Exception as e:
             pass
+
+        i += 1
 
 def process_vcf_file(path, state, file_index):
     with open(path, encoding="utf-8", errors="ignore") as f:
@@ -496,27 +506,28 @@ def handle_files(update: Update, context: CallbackContext):
 # ✅ VCF → TXT (SINGLE MESSAGE MODE)
     if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
 
-    # 👉 start animation (only once)
+        file_index = state.get("files", 0)
+        state["files"] = file_index + 1
+
+        # 🔥 START ANIMATION ONLY ONCE
         if not state.get("msg_id"):
-            msg = update.message.reply_text("📄 Scanning VCF file... ●○○")
+            msg = update.message.reply_text("📄 Scanning VCF Files ●○○")
+
             state["msg_id"] = msg.message_id
             state["animating"] = True
-            state["total_lines"] = 0
-            state["processed_lines"] = 0
 
             threading.Thread(
                 target=dot_animation,
                 args=(context, update.message.chat_id, msg.message_id, state),
                 daemon=True
-                ).start()
+            ).start()
 
-            file_index = state.get("files", 0)
-            state["files"] = file_index + 1
-            threading.Thread(
-                target=process_vcf_file,
-                args=(path, state, file_index),
-                daemon=True
-                ).start()
+        # 🔥 FILE PROCESS THREAD (IMPORTANT FIX)
+        threading.Thread(
+            target=process_vcf_file,
+            args=(path, state, file_index),
+            daemon=True
+        ).start()
 
         return
 
