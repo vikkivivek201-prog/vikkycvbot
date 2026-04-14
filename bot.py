@@ -3,9 +3,9 @@ import os
 import threading
 import json
 import time
-from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import CallbackQueryHandler
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-lock = threading.Lock()
 
 def progress_bar(current, total):
     percent = int((current / total) * 100) if total else 0
@@ -30,9 +30,36 @@ main_menu = [
     ["🔄 Merge VCF", "✂️ Split Text"],
     ["✍️ VCF Editer", "💳 My Subscription"],
 ]
+def get_main_menu():
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                text=" Text to VCF",
+                callback_data="text_to_vcf",
+                icon_custom_emoji_id="5431736674147114227"
+            ),
+            InlineKeyboardButton(
+                text=" VCF to Text",
+                callback_data="vcf_to_txt",
+                icon_custom_emoji_id="5431736674147114228"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text=" Merge VCF",
+                callback_data="merge_vcf",
+                icon_custom_emoji_id="5431736674147114229"
+            ),
+            InlineKeyboardButton(
+                text=" Split Text",
+                callback_data="split_text",
+                icon_custom_emoji_id="5431736674147114230"
+            )
+        ]
+    ]
+    return InlineKeyboardMarkup(keyboard)
 
 user_state = {}
-state_lock = threading.Lock()
 
 # 🔹 Load users
 def load_users():
@@ -47,17 +74,6 @@ def save_users(data):
     with open("users.json", "w") as f:
         json.dump(data, f, indent=4)
 
-def reset_vcf_state(state):
-    state["numbers"] = []
-    state["files"] = 0
-    state["processing_files"] = set()
-    state["file_done"] = 0
-    state["total_lines"] = 0
-    state["processed_lines"] = 0
-    state["speed"] = 0
-    state["msg_id"] = None
-    state["animating"] = False
-
 # 🔹 Start
 def start(update: Update, context: CallbackContext):
     users = load_users()
@@ -69,38 +85,14 @@ def start(update: Update, context: CallbackContext):
 
     update.message.reply_text(
         "🔥 ULTRA PRO BOT 🔥",
-        reply_markup=ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
-    )
-
-
+        reply_markup=get_main_menu()
+        )
 
 # 🔹 TEXT HANDLER
 def handle_text(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     text = update.message.text
     state = user_state.get(user_id)
-
-# DONE VCF → TXT
-    if text == "/done" and state and state.get("mode") == "vcf_to_txt":
-        state["animating"] = False
-
-        final = (
-            f"📄 Final Result\n━━━━━━━━━━━━━━━\n"
-            f"📁 Files: {state['files']}\n"
-            f"📊 Extracted: {len(state['numbers'])}\n"
-            f"⚡ Speed: {state.get('speed', 0)} lines/sec\n"
-            f"✅ Type name for TXT file"
-        )
-
-        context.bot.edit_message_text(
-            chat_id=update.message.chat_id,
-            message_id=state["msg_id"],
-            text=final
-        )
-
-        state["step"] = "ask_name"
-
-
 
     # 📁 TEXT TO VCF
     if text == "📁 Text to VCF":
@@ -116,29 +108,23 @@ def handle_text(update: Update, context: CallbackContext):
         )
         return
 
-# 📄 VCF TO TEXT
+    # 📄 VCF TO TEXT
     if text == "📄 VCF to Text":
         user_state[user_id] = {
             "mode": "vcf_to_txt",
             "numbers": [],
-            "files": 0,              # total received
-            "done_files": 0,         # total completed
-
-            "processing_files": set(),  # prevent duplicate processing
-
+            "files": 0,
             "msg_id": None,
-            "animating": False,
-
             "start_time": time.time(),
+            "user_total_files": None,
+            "total_lines": 0,
             "processed_lines": 0,
-            "speed": 0
         }
 
         update.message.reply_text(
-            "📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send one or multiple .vcf files\n\n⌨️ Send files continuously\n✅ Type /done when finished"
+            "📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send one or multiple .vcf files\n\n✅ Finish Type → /done"
         )
         return
-
 
     # 📥 COLLECT NUMBERS
     if state and state.get("mode") == "collect" and text != "/done":
@@ -291,6 +277,34 @@ END:VCARD
         update.message.reply_text("📞 Contact admin")
         return
 
+# DONE VCF → TXT
+    if text == "/done" and state and state.get("mode") == "vcf_to_txt":
+        state["animating"] = False
+
+        final_text = (
+            f"📄 Final Result\n━━━━━━━━━━━━━━━\n"
+            f"📁 Files Processed: {state.get('files', 0)}\n"
+            f"📊 Total Extracted: {len(state['numbers'])}\n"
+            f"✅ Finished!"
+        )
+
+        # ✅ EDIT MESSAGE (if exists)
+        if state.get("msg_id"):
+            context.bot.edit_message_text(
+                chat_id=update.message.chat_id,
+                message_id=state["msg_id"],
+                text=final_text
+            )
+        else:
+            update.message.reply_text(final_text)
+
+        state["step"] = "ask_name"
+
+        update.message.reply_text(
+            "📝 Enter the name for your .txt file:\nExample: ExtractedList"
+        )
+        return
+
 # NAME INPUT
 # NAME INPUT
     if state and state.get("mode") == "vcf_to_txt" and state.get("step") == "ask_name":
@@ -348,17 +362,7 @@ END:VCARD
 
         update.message.reply_text("⏳ Processing...")
 
-        total = len(chunks)
         for idx, chunk in enumerate(chunks):
-            percent = int(((idx + 1) / total) * 100)
-            bar = "█" * (percent // 10) + "░" * (10 - percent // 10)
-
-            update.message.reply_text(
-                f"📦 Creating VCF Files...\n"
-                f"{bar} {percent}%\n"
-                f"📁 File {idx+1}/{total}"
-                )
-
             vcf_data = ""
             for i, num in enumerate(chunk):
                 vcf_data += f"BEGIN:VCARD\nVERSION:3.0\nFN:{state['prefix']} {state['name']} {i+1}\nTEL;TYPE=CELL:{num}\nEND:VCARD\n"
@@ -374,68 +378,87 @@ END:VCARD
         update.message.reply_text("✅ Done")
         user_state.pop(user_id)
 
+def button_click(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+
+    user_id = query.from_user.id
+    data = query.data
+
+    if data == "text_to_vcf":
+        user_state[user_id] = {
+            "mode": "collect",
+            "numbers": [],
+            "files": 0,
+            "start_time": time.time()
+        }
+        query.message.reply_text("📥 Send Contacts\nType /done when finished")
+
+    elif data == "vcf_to_txt":
+        user_state[user_id] = {
+            "mode": "vcf_to_txt",
+            "numbers": [],
+            "files": 0,
+            "msg_id": None,
+            "start_time": time.time(),
+            "total_lines": 0,
+            "processed_lines": 0,
+        }
+        query.message.reply_text("📤 Upload VCF Files\nType /done when finished")
+
+    elif data == "merge_vcf":
+        user_state[user_id] = {
+            "mode": "merge_vcf",
+            "step": "ask_filename"
+        }
+        query.message.reply_text("Enter output VCF file name:")
+
 def animate_progress(context, chat_id, msg_id, state):
-    while state.get("animating"):
-        time.sleep(0.7)
-
-        text = "📄 VCF SCANNING (REAL TIME)\n━━━━━━━━━━━━━━━\n\n"
-
-        for file_index in state.get("file_progress", {}):
-            done = state["file_progress"].get(file_index, 0)
-
-            bar = "█" * (done % 10) + "░" * (10 - (done % 10))
-
-            status = "✅ DONE" if state["file_done"].get(file_index) else "⏳"
-
-            text += f"📁 File {file_index+1} {status}\n"
-            text += f"{bar} {done} lines\n\n"
-
-        text += f"📊 Total Extracted: {len(state['numbers'])}"
-
-        try:
-            context.bot.edit_message_text(
-                chat_id=chat_id,
-                message_id=msg_id,
-                text=text
-            )
-        except:
-            pass
-
-def dot_animation(context, chat_id, msg_id, state):
-    dots = ["●○○", "○●○", "○○●"]
-    i = 0
+    last_done = 0
+    last_time = time.time()
 
     while state.get("animating"):
-        time.sleep(1)
+        time.sleep(0.5)
 
-        text = (
-            f"📄 Scanning VCF Files {dots[i % 3]}\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"📁 Files: {state['files']}\n"
-            f"📊 Extracted: {len(state['numbers'])}\n"
-            f"⚡ Speed: {state.get('speed', 0)} lines/sec\n"
-            f"⌨️ Send more files OR type /done"
+        total = max(state.get("total_lines", 1), 1)
+        done = state.get("processed_lines", 0)
+
+        # ✅ REAL SPEED (last 0.5 sec ka)
+        now = time.time()
+        speed = (done - last_done) / (now - last_time) if (now - last_time) > 0 else 0
+        last_done = done
+        last_time = now
+
+        percent = min(int((done / total) * 100), 100)
+
+        filled = int(percent / 5)
+        bar = "█" * filled + "░" * (20 - filled)
+
+        text_msg = (
+            f"🔎 VCF SCANNING\n"
+            f"━━━━━━━━━━━━━━━\n\n"
+            f"📁 Files: {state.get('files', 0)}\n"
+            f"📊 Extracted: {len(state.get('numbers', []))}\n\n"
+            f"📈 Progress: {bar} {percent}%\n\n"
+            f"⚡ Speed: {speed:.0f} lines/sec\n"
+            f"🔄 {done}/{total} lines"
+            f"Finish Type: /done"
         )
 
         try:
             context.bot.edit_message_text(
                 chat_id=chat_id,
                 message_id=msg_id,
-                text=text
+                text=text_msg
             )
         except:
             pass
 
-        i += 1
+def process_vcf_file(path, state):
+    with open(path, encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            state["total_lines"] += 1
 
-def process_vcf_file(path, state, file_index):
-    try:
-        with open(path, encoding="utf-8", errors="ignore") as f:
-            lines = f.readlines()
-
-        total = len(lines)
-
-        for i, line in enumerate(lines):
             line = line.strip()
 
             if "TEL" in line.upper():
@@ -443,33 +466,11 @@ def process_vcf_file(path, state, file_index):
                 num = num.replace(" ", "").replace("-", "").replace("+", "")
 
                 if num.isdigit() and len(num) >= 8:
-                    with lock:
-                        state["numbers"].append(num)
+                    state["numbers"].append(num)
 
             state["processed_lines"] += 1
 
-            # 🔥 SPEED FIX (REAL TIME)
-            elapsed = time.time() - state["start_time"]
-            if elapsed > 0:
-                state["speed"] = int(state["processed_lines"] / elapsed)
-
-            # 🔥 Extracted debug (safe)
-            state["file_progress"][file_index] = i + 1
-
-        state["file_done"][file_index] = True
-
-    except Exception as e:
-        print("ERROR:", e)
-
-    finally:
-        try:
-            os.remove(path)
-        except:
-            pass
-
-    # 🔥 STOP CONDITION FIX
-    if state["file_done"] == state["files"]:
-        state["animating"] = False
+    os.remove(path)
 
 # 🔹 FILE HANDLER
 def handle_files(update: Update, context: CallbackContext):
@@ -480,11 +481,7 @@ def handle_files(update: Update, context: CallbackContext):
     state = user_state.get(user_id)
     # 👉 file count
     if state and state.get("mode") == "vcf_to_txt":
-        file_index = len(state.get("file_progress", {}))
-
-
-        if file_index not in state["file_progress"]:
-            state["file_progress"][file_index] = 0
+        state["files"] = state.get("files", 0) + 1
 
 
     if not state:
@@ -536,35 +533,29 @@ def handle_files(update: Update, context: CallbackContext):
         )
         return
 
-#VCF TO TEXT
+# ✅ VCF → TXT (SINGLE MESSAGE MODE)
     if filename.endswith(".vcf") and state.get("mode") == "vcf_to_txt":
 
-        file_index = state["files"]
-        state["files"] += 1
-
-    # start animation ONLY once
+    # 👉 start animation (only once)
         if not state.get("msg_id"):
-            msg = update.message.reply_text("📄 Scanning VCF Files ●○○")
+            msg = update.message.reply_text("📄 Starting...")
             state["msg_id"] = msg.message_id
             state["animating"] = True
+            state["total_lines"] = 0
+            state["processed_lines"] = 0
 
             threading.Thread(
-                target=dot_animation,
+                target=animate_progress,
                 args=(context, update.message.chat_id, msg.message_id, state),
                 daemon=True
-            ).start()
+                ).start()
 
-    # avoid duplicate processing
-        if filename in state["processing_files"]:
-            return
-
-        state["processing_files"].add(filename)
-
+    # 👉 process EVERY file
         threading.Thread(
             target=process_vcf_file,
-            args=(path, state, file_index),
+            args=(path, state),
             daemon=True
-        ).start()
+            ).start()
 
         return
 
@@ -601,6 +592,7 @@ def run_bot():
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CallbackQueryHandler(button_click))
     dp.add_handler(MessageHandler(Filters.document, handle_files))
     dp.add_handler(MessageHandler(Filters.text, handle_text))
 
