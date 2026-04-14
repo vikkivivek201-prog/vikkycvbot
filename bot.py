@@ -95,6 +95,7 @@ def handle_text(update: Update, context: CallbackContext):
             "last_speed_time": time.time(),
             "last_processed": 0,
             "speed": 0
+            }
 
     # ✅ ADD THIS
             "file_progress": {},
