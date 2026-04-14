@@ -82,7 +82,7 @@ def handle_text(update: Update, context: CallbackContext):
         )
         return
 
-    # 📄 VCF TO TEXT
+# 📄 VCF TO TEXT
     if text == "📄 VCF to Text":
         user_state[user_id] = {
             "mode": "vcf_to_txt",
@@ -92,21 +92,22 @@ def handle_text(update: Update, context: CallbackContext):
             "start_time": time.time(),
             "total_lines": 0,
             "processed_lines": 0,
+
             "last_speed_time": time.time(),
             "last_processed": 0,
-            "speed": 0
-            }
+            "speed": 0,
 
-    # ✅ ADD THIS
+            # ✅ ADD THIS
             "file_progress": {},
             "file_done": {},
             "active_file": None
-            }
+        }
 
         update.message.reply_text(
             "📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send one or multiple .vcf files\n\n✅ Finish Type → /done"
-        )
+            )
         return
+
 
     # 📥 COLLECT NUMBERS
     if state and state.get("mode") == "collect" and text != "/done":
