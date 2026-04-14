@@ -46,6 +46,17 @@ def save_users(data):
     with open("users.json", "w") as f:
         json.dump(data, f, indent=4)
 
+def reset_vcf_state(state):
+    state["numbers"] = []
+    state["files"] = 0
+    state["processing_files"] = set()
+    state["file_done"] = 0
+    state["total_lines"] = 0
+    state["processed_lines"] = 0
+    state["speed"] = 0
+    state["msg_id"] = None
+    state["animating"] = False
+
 # 🔹 Start
 def start(update: Update, context: CallbackContext):
     users = load_users()
@@ -72,29 +83,22 @@ def handle_text(update: Update, context: CallbackContext):
     if text == "/done" and state and state.get("mode") == "vcf_to_txt":
         state["animating"] = False
 
-        final_text = (
+        final = (
             f"📄 Final Result\n━━━━━━━━━━━━━━━\n"
-            f"📁 Files Processed: {state.get('files', 0)}\n"
-            f"📊 Total Extracted: {len(state['numbers'])}\n"
-            f"✅ Finished!"
+            f"📁 Files: {state['files']}\n"
+            f"📊 Extracted: {len(state['numbers'])}\n"
+            f"⚡ Speed: {state.get('speed', 0)} lines/sec\n"
+            f"✅ Type name for TXT file"
         )
 
-        # ✅ EDIT MESSAGE (if exists)
-        if state.get("msg_id"):
-            context.bot.edit_message_text(
-                chat_id=update.message.chat_id,
-                message_id=state["msg_id"],
-                text=final_text
-            )
-        else:
-            update.message.reply_text(final_text)
+        context.bot.edit_message_text(
+            chat_id=update.message.chat_id,
+            message_id=state["msg_id"],
+            text=final
+        )
 
         state["step"] = "ask_name"
 
-        update.message.reply_text(
-            "📝 Enter the name for your .txt file:\nExample: ExtractedList"
-        )
-        return
 
 
     # 📁 TEXT TO VCF
