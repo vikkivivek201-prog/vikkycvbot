@@ -5,7 +5,7 @@ import json
 import time
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-progress_lock = threading.lock()
+progress_lock = threading.Lock()
 
 def progress_bar(current, total):
     percent = int((current / total) * 100) if total else 0
