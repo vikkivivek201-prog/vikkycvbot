@@ -504,7 +504,7 @@ def handle_files(update: Update, context: CallbackContext):
             state["worker_started"] = False
 
             threading.Thread(
-                target=smooth_animate_progress,
+                target=smooth_progress_updater,
                 args=(context, update.message.chat_id, state["msg_id"], state),
                 daemon=True
                 ).start()
