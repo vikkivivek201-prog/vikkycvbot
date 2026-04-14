@@ -87,9 +87,14 @@ def handle_text(update: Update, context: CallbackContext):
             "files": 0,
             "msg_id": None,
             "start_time": time.time(),
-            "user_total_files": None,
             "total_lines": 0,
             "processed_lines": 0,
+
+    # ✅ ADD THIS
+            "file_progress": {},
+            "file_done": {},
+            "active_file": None
+            }
         }
 
         update.message.reply_text(
@@ -360,42 +365,28 @@ END:VCARD
         user_state.pop(user_id)
 
 def animate_progress(context, chat_id, msg_id, state):
-    last_done = 0
-    last_time = time.time()
-
     while state.get("animating"):
-        time.sleep(0.5)
+        time.sleep(0.7)
 
-        total = max(state.get("total_lines", 1), 1)
-        done = state.get("processed_lines", 0)
+        text = "📄 VCF SCANNING (REAL TIME)\n━━━━━━━━━━━━━━━\n\n"
 
-        # ✅ REAL SPEED (last 0.5 sec ka)
-        now = time.time()
-        speed = (done - last_done) / (now - last_time) if (now - last_time) > 0 else 0
-        last_done = done
-        last_time = now
+        for file_index in state.get("file_progress", {}):
+            done = state["file_progress"].get(file_index, 0)
 
-        percent = min(int((done / total) * 100), 100)
+            bar = "█" * (done % 10) + "░" * (10 - (done % 10))
 
-        filled = int(percent / 5)
-        bar = "█" * filled + "░" * (20 - filled)
+            status = "✅ DONE" if state["file_done"].get(file_index) else "⏳"
 
-        text_msg = (
-            f"🔎 VCF SCANNING\n"
-            f"━━━━━━━━━━━━━━━\n\n"
-            f"📁 Files: {state.get('files', 0)}\n"
-            f"📊 Extracted: {len(state.get('numbers', []))}\n\n"
-            f"📈 Progress: {bar} {percent}%\n\n"
-            f"⚡ Speed: {speed:.0f} lines/sec\n"
-            f"🔄 {done}/{total} lines"
-            f"Finish Type: /done"
-        )
+            text += f"📁 File {file_index+1} {status}\n"
+            text += f"{bar} {done} lines\n\n"
+
+        text += f"📊 Total Extracted: {len(state['numbers'])}"
 
         try:
             context.bot.edit_message_text(
                 chat_id=chat_id,
                 message_id=msg_id,
-                text=text_msg
+                text=text
             )
         except:
             pass
@@ -416,22 +407,30 @@ def dot_animation(context, chat_id, msg_id, state):
         except:
             pass
 
-def process_vcf_file(path, state):
+def process_vcf_file(path, state, file_index):
     with open(path, encoding="utf-8", errors="ignore") as f:
-        for line in f:
-            state["total_lines"] += 1
+        lines = f.readlines()
 
-            line = line.strip()
+    total = len(lines)
 
-            if "TEL" in line.upper():
-                num = line.split(":")[-1].strip()
-                num = num.replace(" ", "").replace("-", "").replace("+", "")
+    state["total_lines"] += total
+    state["active_file"] = file_index
 
-                if num.isdigit() and len(num) >= 8:
-                    state["numbers"].append(num)
+    for i, line in enumerate(lines):
+        line = line.strip()
 
-            state["processed_lines"] += 1
+        if "TEL" in line.upper():
+            num = line.split(":")[-1].strip()
+            num = num.replace(" ", "").replace("-", "").replace("+", "")
 
+            if num.isdigit() and len(num) >= 8:
+                state["numbers"].append(num)
+
+        # 🔥 LIVE PROGRESS
+        state["file_progress"][file_index] = i + 1
+        state["processed_lines"] += 1
+
+    state["file_done"][file_index] = True
     os.remove(path)
 
 # 🔹 FILE HANDLER
@@ -512,12 +511,13 @@ def handle_files(update: Update, context: CallbackContext):
                 daemon=True
                 ).start()
 
-    # 👉 process EVERY file
-        threading.Thread(
-            target=process_vcf_file,
-            args=(path, state),
-            daemon=True
-            ).start()
+            file_index = state.get("files", 0)
+            state["files"] = file_index + 1
+            threading.Thread(
+                target=process_vcf_file,
+                args=(path, state, file_index),
+                daemon=True
+                ).start()
 
         return
 
