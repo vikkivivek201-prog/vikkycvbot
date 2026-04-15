@@ -23,6 +23,13 @@ def home():
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 
+main_menu = [
+    ["📁 Text to VCF", "📄 VCF to Text"],
+    ["📄 Manual VCF", "📁 Manual Text"],
+    ["🔄 Merge VCF", "✂️ Split Text"],
+    ["✍️ VCF Editer", "💳 My Subscription"],
+]
+
 def main_menu():
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
     
