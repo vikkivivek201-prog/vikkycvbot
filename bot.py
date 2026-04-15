@@ -3,7 +3,7 @@ import os
 import threading
 import json
 import time
-from telegram import Update, ReplyKeyboardMarkup
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 def progress_bar(current, total):
@@ -23,46 +23,32 @@ def home():
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 
-def main_menu():
-    kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    
-    # Row 1
-    kb.row(
-        types.KeyboardButton("📁 Text to VCF", style="primary", icon_custom_emoji_id="5433653135799228968"),
-        types.KeyboardButton("📄 VCF to Text", style="primary", icon_custom_emoji_id="5431736674147114227")
-    )
-    
-    # Row 2
-    kb.row(
-        types.KeyboardButton("📄 Manual VCF", style="success", icon_custom_emoji_id="6266995104687330978"),
-        types.KeyboardButton("📁 Manual Text", style="primary", icon_custom_emoji_id="5334673106202010226")
-    )
-    
-    # Row 3
-    kb.row(
-        types.KeyboardButton("🔄 Merge VCF", style="primary", icon_custom_emoji_id="5264727218734524899"),
-        types.KeyboardButton("✂️ Split Text", style="primary", icon_custom_emoji_id="5258477770735885832")
-    )
-    
-    # Row 4
-    kb.row(
-        types.KeyboardButton("✍️ VCF Editer", style="primary", icon_custom_emoji_id="5237808360882977239"),
-        types.KeyboardButton("🔍Get VCF details", style="danger", icon_custom_emoji_id="5893382531037794941")
-    )
-    
-    # Row 5
-    kb.row(
-        types.KeyboardButton("💳 Premium", style="success", icon_custom_emoji_id="5902432207519093015")
-    )
-    
-    return kb
-
 main_menu = [
-    ["📁 Text to VCF", "📄 VCF to Text"],
-    ["📄 Manual VCF", "📁 Manual Text"],
-    ["🔄 Merge VCF", "✂️ Split Text"],
-    ["✍️ VCF Editer", "💳 My Subscription"],
+    [
+        KeyboardButton(
+            text="Text to VCF",
+            icon_custom_emoji_id="5433653135799228968"
+        ),
+        KeyboardButton(
+            text="VCF to Text",
+            icon_custom_emoji_id="5431736674147114227"
+        )
+    ],
+    [
+        KeyboardButton(text="Manual VCF"),
+        KeyboardButton(text="Manual Text")
+    ],
+    [
+        KeyboardButton(text="Merge VCF"),
+        KeyboardButton(text="Split Text")
+    ],
+    [
+        KeyboardButton(text="VCF Editer"),
+        KeyboardButton(text="My Subscription")
+    ]
 ]
+
+
 user_state = {}
 
 
@@ -100,7 +86,7 @@ def handle_text(update: Update, context: CallbackContext):
     state = user_state.get(user_id)
 
     # 📁 TEXT TO VCF
-    if text == "📁 Text to VCF":
+    if text == "Text to VCF":
         user_state[user_id] = {
             "mode": "collect",
             "numbers": [],
