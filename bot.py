@@ -1,8 +1,14 @@
+from flask import flask
 import telebot
+import os
+import json
 import re
 import time
 from io import BytesIO
 from telebot import types
+
+
+web = Flask(__name_)
 
 # ================= CONFIGURATION =================
 TOKEN = os.getenv("BOT_TOKEN")
