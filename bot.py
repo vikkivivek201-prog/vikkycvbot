@@ -3,8 +3,10 @@ import os
 import threading
 import json
 import time
-from telegram import KeyboardButton, ReplyKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import CallbackQueryHandler
 
 def progress_bar(current, total):
     percent = int((current / total) * 100) if total else 0
@@ -21,22 +23,29 @@ def home():
 
 # 🔹 Config
 TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
+ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113")
 
-main_menu = [
-    [
-        KeyboardButton(
-            text="Text to VCF",
-            icon_custom_emoji_id="6069143072510318877"
-        ),
-        KeyboardButton(
-            text="VCF to Text",
-            icon_custom_emoji_id="6069143072510318877"
-        )
+
+def get_main_menu():
+    # Developer wali ID yahan hai
+    e_id = "5431736674147114227" 
+    
+    keyboard = [
+        [
+            InlineKeyboardButton("Text to VCF", callback_data="txt_to_vcf", icon_custom_emoji_id=e_id),
+            InlineKeyboardButton("VCF to Text", callback_data="vcf_to_txt", icon_custom_emoji_id=e_id)
+        ],
+        [
+            InlineKeyboardButton("Merge VCF", callback_data="merge_vcf", icon_custom_emoji_id=e_id),
+            InlineKeyboardButton("Split Text", callback_data="split_text", icon_custom_emoji_id=e_id)
+        ],
+        [
+            InlineKeyboardButton("VCF Editor", callback_data="vcf_editor", icon_custom_emoji_id=e_id),
+            InlineKeyboardButton("My Plan", callback_data="my_sub", icon_custom_emoji_id=e_id)
+        ]
     ]
-]
+    return InlineKeyboardMarkup(keyboard)
 
-user_state = {}
 
 # 🔹 Load users
 def load_users():
@@ -55,15 +64,33 @@ def save_users(data):
 def start(update: Update, context: CallbackContext):
     users = load_users()
     uid = str(update.message.from_user.id)
-
     if uid not in users:
         users[uid] = {"premium": False}
         save_users(users)
 
+    # Naya menu yahan call ho raha hai
     update.message.reply_text(
-        "🔥 ULTRA PRO BOT 🔥",
-        reply_markup=ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
+        "🔥 <b>ULTRA PRO BOT</b> 🔥\n\n<i>Select a service:</i>",
+        parse_mode='HTML',
+        reply_markup=get_main_menu()
     )
+
+
+def button_handler(update: Update, context: CallbackContext):
+    query = update.callback_query
+    user_id = query.from_user.id
+    query.answer() # Loading icon hatane ke liye
+
+    if query.data == "txt_to_vcf":
+        user_state[user_id] = {"mode": "collect", "numbers": [], "files": 0, "start_time": time.time()}
+        query.message.reply_text("📥 Send Contacts\n═══════════════\n📂 Numbers / .txt / .xlsx\n\n✅ Finish Type → /done")
+    
+    elif query.data == "vcf_to_txt":
+        user_state[user_id] = {"mode": "vcf_to_txt", "numbers": [], "files": 0, "msg_id": None, "start_time": time.time(), "total_lines": 0, "processed_lines": 0}
+        query.message.reply_text("📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send .vcf files\n\n✅ Finish Type → /done")
+        
+    # Isi tarah baaki buttons (merge_vcf etc.) ka logic yahan daal dein
+
 
 # 🔹 TEXT HANDLER
 def handle_text(update: Update, context: CallbackContext):
@@ -283,25 +310,21 @@ END:VCARD
         return
 
 # NAME INPUT
-# NAME INPUT
     if state and state.get("mode") == "vcf_to_txt" and state.get("step") == "ask_name":
         filename = f"{text}.txt"
 
         with open(filename, "w") as f:
             f.write("\n".join(state["numbers"]))
 
-        # 📄 Send file with ONLY caption
-        update.message.reply_document(
-            document=open(filename, "rb"),
-            caption="✅ Extracted Numbers"
+        update.message.reply_document(open(filename, "rb"))
+        os.remove(filename)
+
+        update.message.reply_text(
+            "✅ Extracted Numbers\n\n✅ Extraction Completed Successfully! 🎉"
         )
 
-        # 🎉 Only this reply
-        update.message.reply_text("🎉 Extraction Completed Successfully!")
-
-        os.remove(filename)
         user_state.pop(user_id)
-
+        return
 
     # TXT → VCF steps
     if not state:
@@ -377,14 +400,13 @@ def animate_progress(context, chat_id, msg_id, state):
         bar = "█" * filled + "░" * (20 - filled)
 
         text_msg = (
-            f"🔎 VCF SCANNING\n"
+            f"🚀 VCF SCANNING\n"
             f"━━━━━━━━━━━━━━━\n\n"
             f"📁 Files: {state.get('files', 0)}\n"
             f"📊 Extracted: {len(state.get('numbers', []))}\n\n"
             f"📈 Progress: {bar} {percent}%\n\n"
             f"⚡ Speed: {speed:.0f} lines/sec\n"
             f"🔄 {done}/{total} lines"
-            f"Finish Type: /done"
         )
 
         try:
@@ -534,6 +556,7 @@ def run_bot():
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CallbackQueryHandler(button_handler))
     dp.add_handler(MessageHandler(Filters.document, handle_files))
     dp.add_handler(MessageHandler(Filters.text, handle_text))
 
