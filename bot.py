@@ -3,10 +3,8 @@ import os
 import threading
 import json
 import time
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-from telegram.ext import CallbackQueryHandler
 
 def progress_bar(current, total):
     percent = int((current / total) * 100) if total else 0
@@ -25,31 +23,41 @@ def home():
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 
-
-def get_premium_menu():
-    # Jo ID aapke dev ne di thi
-    e_id = "5431736674147114227" 
+def main_menu():
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
     
-    keyboard = [
-        [
-            InlineKeyboardButton("Text to VCF", callback_data="txt_to_vcf", icon_custom_emoji_id=e_id),
-            InlineKeyboardButton("VCF to Text", callback_data="vcf_to_txt", icon_custom_emoji_id=e_id)
-        ],
-        [
-            InlineKeyboardButton("Admin/Navy", callback_data="admin", icon_custom_emoji_id=e_id),
-            InlineKeyboardButton("VCF Editor", callback_data="vcf_editor", icon_custom_emoji_id=e_id)
-        ],
-        [
-            InlineKeyboardButton("Merge VCF", callback_data="merge_vcf", icon_custom_emoji_id=e_id),
-            InlineKeyboardButton("Merge TEXT", callback_data="merge_text", icon_custom_emoji_id=e_id)
-        ],
-        [
-            InlineKeyboardButton("Split VCF", callback_data="split_vcf", icon_custom_emoji_id=e_id),
-            InlineKeyboardButton("Get Name", callback_data="get_name", icon_custom_emoji_id=e_id)
-        ]
-    ]
-    return InlineKeyboardMarkup(keyboard)
+    # Row 1
+    kb.row(
+        types.KeyboardButton("📁 Text to VCF", style="primary", icon_custom_emoji_id="5433653135799228968"),
+        types.KeyboardButton("📄 VCF to Text", style="primary", icon_custom_emoji_id="5431736674147114227")
+    )
+    
+    # Row 2
+    kb.row(
+        types.KeyboardButton("📄 Manual VCF", style="success", icon_custom_emoji_id="6266995104687330978"),
+        types.KeyboardButton("📁 Manual Text", style="primary", icon_custom_emoji_id="5334673106202010226")
+    )
+    
+    # Row 3
+    kb.row(
+        types.KeyboardButton("🔄 Merge VCF", style="primary", icon_custom_emoji_id="5264727218734524899"),
+        types.KeyboardButton("✂️ Split Text", style="primary", icon_custom_emoji_id="5258477770735885832")
+    )
+    
+    # Row 4
+    kb.row(
+        types.KeyboardButton("✍️ VCF Editer", style="primary", icon_custom_emoji_id="5237808360882977239"),
+        types.KeyboardButton("🔍Get VCF details", style="danger", icon_custom_emoji_id="5893382531037794941")
+    )
+    
+    # Row 5
+    kb.row(
+        types.KeyboardButton("💳 Premium", style="success", icon_custom_emoji_id="5902432207519093015")
+    )
+    
+    return kb
 
+user_state = {}
 
 # 🔹 Load users
 def load_users():
@@ -60,38 +68,23 @@ def load_users():
         return {}
 
 # 🔹 Save users
+def save_users(data):
+    with open("users.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+# 🔹 Start
 def start(update: Update, context: CallbackContext):
-    # ... purana load_users wala logic rehne dena ...
-    
-    welcome_text = (
-        "🔥 <b>WELCOME TO VCF TOOL BOT</b> 🔥\n\n"
-        "👤 <b>User:</b> <code>Premium Unlocked</code>\n"
-        "━━━━━━━━━━━━━━━\n"
-        "<i>Select a service from the menu below:</i>"
-    )
-    
+    users = load_users()
+    uid = str(update.message.from_user.id)
+
+    if uid not in users:
+        users[uid] = {"premium": False}
+        save_users(users)
+
     update.message.reply_text(
-        welcome_text,
-        parse_mode='HTML',
-        reply_markup=get_premium_menu() # Ye video jaisa menu dikhayega
+        "🔥 ULTRA PRO BOT 🔥",
+        reply_markup=ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
     )
-
-
-def button_handler(update: Update, context: CallbackContext):
-    query = update.callback_query
-    user_id = query.from_user.id
-    query.answer() # Loading icon hatane ke liye
-
-    if query.data == "txt_to_vcf":
-        user_state[user_id] = {"mode": "collect", "numbers": [], "files": 0, "start_time": time.time()}
-        query.message.reply_text("📥 Send Contacts\n═══════════════\n📂 Numbers / .txt / .xlsx\n\n✅ Finish Type → /done")
-    
-    elif query.data == "vcf_to_txt":
-        user_state[user_id] = {"mode": "vcf_to_txt", "numbers": [], "files": 0, "msg_id": None, "start_time": time.time(), "total_lines": 0, "processed_lines": 0}
-        query.message.reply_text("📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send .vcf files\n\n✅ Finish Type → /done")
-        
-    # Isi tarah baaki buttons (merge_vcf etc.) ka logic yahan daal dein
-
 
 # 🔹 TEXT HANDLER
 def handle_text(update: Update, context: CallbackContext):
@@ -543,33 +536,6 @@ def handle_files(update: Update, context: CallbackContext):
     os.remove(path)
     update.message.reply_text("❌ Invalid file type")
 
-# --- Ye naya function yahan paste karein ---
-def handle_callback(update: Update, context: CallbackContext):
-    query = update.callback_query
-    user_id = query.from_user.id
-    query.answer()
-
-    if query.data == "txt_to_vcf":
-        user_state[user_id] = {
-            "mode": "collect",
-            "numbers": [],
-            "files": 0,
-            "start_time": time.time()
-        }
-        query.message.reply_text("📥 Send Contacts\n═══════════════\n📂 Numbers / .txt / .xlsx\n\n✅ Finish Type → /done")
-    
-    elif query.data == "vcf_to_txt":
-        user_state[user_id] = {
-            "mode": "vcf_to_txt",
-            "numbers": [],
-            "files": 0,
-            "msg_id": None,
-            "start_time": time.time(),
-            "total_lines": 0,
-            "processed_lines": 0,
-        }
-        query.message.reply_text("📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send .vcf files\n\n✅ Finish Type → /done")
-
 # 🔹 ERROR
 def error(update, context):
     print("Error:", context.error)
@@ -584,8 +550,6 @@ def run_bot():
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CallbackQueryHandler(button_handler))
-    dp.add_handler(CallbackQueryHandler(handle_callback))
     dp.add_handler(MessageHandler(Filters.document, handle_files))
     dp.add_handler(MessageHandler(Filters.text, handle_text))
 
