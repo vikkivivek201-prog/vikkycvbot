@@ -1,291 +1,576 @@
 from flask import Flask
 import os
 import threading
-import telebot
-import re
+import json
 import time
-from io import BytesIO
+import telebot
 from telebot import types
 
-# ================= CONFIGURATION =================
-TOKEN = os.environ.get("BOT_TOKEN")   # Render Environment Variable
-bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
+# 🔹 Flask app
+web = Flask(__name__)
 
-app = Flask(__name__)
-
-# In-memory dictionary to store user states and data
-user_data = {}
-
-# ================= WEB SERVER =================
-@app.route('/')
+@web.route('/')
 def home():
-    return "VCF Bot Running Successfully ✅"
+    return "Bot is running!"
 
-@app.route('/healthz')
-def health():
-    return "OK"
+# 🔹 Config
+TOKEN = os.getenv("BOT_TOKEN")
+ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 
-# ================= HELPER FUNCTIONS =================
-def extract_numbers(text):
-    return re.findall(r'\b\d{7,15}\b', text)
+bot = telebot.TeleBot(TOKEN)
 
+# ============================================================
+# 🔹 MAIN MENU — Colored Buttons + Animated Emoji
+# ============================================================
 def main_menu():
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    
+    # Row 1
     kb.row(
-        types.KeyboardButton("Text to VCF"),
-        types.KeyboardButton("VCF to Text")
+        types.KeyboardButton("📁 Text to VCF", style="primary", icon_custom_emoji_id="5433653135799228968"),
+        types.KeyboardButton("📄 VCF to Text", style="primary", icon_custom_emoji_id="5431736674147114227")
     )
+    
+    # Row 2
+    kb.row(
+        types.KeyboardButton("📄 Manual VCF", style="success", icon_custom_emoji_id="6266995104687330978"),
+        types.KeyboardButton("📁 Manual Text", style="primary", icon_custom_emoji_id="5334673106202010226")
+    )
+    
+    # Row 3
+    kb.row(
+        types.KeyboardButton("🔄 Merge VCF", style="primary", icon_custom_emoji_id="5264727218734524899"),
+        types.KeyboardButton("✂️ Split Text", style="primary", icon_custom_emoji_id="5258477770735885832")
+    )
+    
+    # Row 4
+    kb.row(
+        types.KeyboardButton("✍️ VCF Editer", style="primary", icon_custom_emoji_id="5237808360882977239"),
+        types.KeyboardButton("🔍Get VCF details", style="danger", icon_custom_emoji_id="5893382531037794941")
+    )
+    
+    # Row 5
+    kb.row(
+        types.KeyboardButton("💳 Premium", style="success", icon_custom_emoji_id="5902432207519093015")
+    )
+    
     return kb
 
-# ================= COMMANDS =================
-@bot.message_handler(commands=['start'])
-def start_cmd(message):
-    uid = message.from_user.id
-    user_data[uid] = {'state': 'IDLE'}
+# ============================================================
+# 🔹 Inline Colored Buttons (for start message)
+# ============================================================
 
-    load_msg = bot.send_message(uid, "<code>[>_] SYSTEM INITIATED...\nLoading Modules...\n[██░░░░░░░░] 20%</code>")
-    time.sleep(0.5)
+# ============================================================
+# 🔹 User State
+# ============================================================
+user_state = {}
 
-    bot.edit_message_text(
-        "<code>[>_] BYPASSING PROTOCOLS...\nDecrypting Engine...\n[███████░░░] 70%</code>",
-        chat_id=uid,
-        message_id=load_msg.message_id
-    )
-    time.sleep(0.5)
-
-    bot.edit_message_text(
-        "<code>[>_] ACCESS GRANTED.\nBot Ready...\n[██████████] 100%</code>",
-        chat_id=uid,
-        message_id=load_msg.message_id
-    )
-    time.sleep(0.5)
-
+# ============================================================
+# 🔹 Load / Save Users
+# ============================================================
+def load_users():
     try:
-        bot.delete_message(uid, load_msg.message_id)
+        with open("users.json", "r") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_users(data):
+    with open("users.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+
+# ============================================================
+# 🔹 Progress Bar
+# ============================================================
+def progress_bar(current, total):
+    percent = int((current / total) * 100) if total else 0
+    filled = int(percent / 5)
+    bar = "█" * filled + "░" * (20 - filled)
+    return f"{bar} {percent}%"
+
+# ============================================================
+# 🔹 /start
+# ============================================================
+@bot.message_handler(commands=["start"])
+def start(message):
+    users = load_users()
+    uid = str(message.from_user.id)
+
+    if uid not in users:
+        users[uid] = {"premium": False}
+        save_users(users)
+
+    bot.send_message(
+        message.chat.id,
+        (
+            "🔥 *WELCOME TO VCF TOOL BOT* 🔥\n"
+        ),
+        parse_mode="Markdown",
+        reply_markup=main_menu()
+    )
+
+# ============================================================
+# 🔹 TEXT HANDLER
+# ============================================================
+@bot.message_handler(func=lambda m: True, content_types=["text"])
+def handle_text(message):
+    user_id = message.from_user.id
+    text = message.text.strip()
+    state = user_state.get(user_id)
+
+    # ── MENU BUTTONS ──────────────────────────────────────────
+
+    if text == "📁 Text to VCF":
+        start_txt_to_vcf(message, user_id)
+        return
+
+    if text == "📄 VCF to Text":
+        start_vcf_to_txt(message, user_id)
+        return
+
+    if text == "📄 Manual VCF":
+        start_merge_vcf(message, user_id)
+        return
+
+    if text == "📁 Manual Text":
+        bot.send_message(message.chat.id, "✂️ Use *Text to VCF* with a contact limit.", parse_mode="Markdown")
+        return
+
+    if text == "👑 Admin/Navy VCF":
+        if user_id == ADMIN_ID:
+            users = load_users()
+            bot.send_message(message.chat.id, f"👥 *Total Users:* {len(users)}", parse_mode="Markdown")
+        else:
+            bot.send_message(message.chat.id, "❌ Not allowed.")
+        return
+
+    if text == "⚙️ My Subscription":
+        bot.send_message(message.chat.id, "⚙️ *My Subscription*\n\nContact admin for premium.", parse_mode="Markdown")
+        return
+
+    if text == "🔍 Get Name":
+        bot.send_message(message.chat.id, "🔍 *Get Name* feature coming soon!", parse_mode="Markdown")
+        return
+
+    if text == "✏️ VCF Editor":
+        bot.send_message(message.chat.id, "✏️ *VCF Editor* feature coming soon!", parse_mode="Markdown")
+        return
+
+    if text == "📑 Merge TEXT":
+        bot.send_message(message.chat.id, "📑 *Merge TEXT* feature coming soon!", parse_mode="Markdown")
+        return
+
+    # ── STATE FLOWS ───────────────────────────────────────────
+
+    if not state:
+        bot.send_message(message.chat.id, "⚠️ Please select an option from menu first.", reply_markup=main_menu())
+        return
+
+    mode = state.get("mode")
+
+    # ── TEXT TO VCF ────────────────────────────────────────────
+    if mode == "collect":
+        if text == "/done":
+            if not state["numbers"]:
+                bot.send_message(message.chat.id, "❌ No contacts added yet.")
+                return
+            state["mode"] = "ask_name"
+            bot.send_message(message.chat.id, "1️⃣ *VCF File Name?*\n_(Example: Hongkong)_", parse_mode="Markdown")
+        else:
+            for n in text.split():
+                n = n.replace(" ", "").replace("-", "").replace("+", "")
+                if n.isdigit() and len(n) >= 8:
+                    state["numbers"].append(n)
+        return
+
+    if mode == "ask_name":
+        state["file_name"] = text
+        state["mode"] = "ask_prefix"
+        bot.send_message(message.chat.id, "2️⃣ *Contact Name Prefix?*\n_(Example: Vikky Boss)_", parse_mode="Markdown")
+        return
+
+    if mode == "ask_prefix":
+        state["prefix"] = text
+        state["mode"] = "ask_start_vcf"
+        bot.send_message(message.chat.id, "3️⃣ *VCF File Starting Number?*\n_(Example: 1)_", parse_mode="Markdown")
+        return
+
+    if mode == "ask_start_vcf":
+        try:
+            state["vcf_start"] = int(text)
+        except:
+            bot.send_message(message.chat.id, "❌ Enter a valid number.")
+            return
+        state["mode"] = "ask_contact_start"
+        bot.send_message(message.chat.id, "4️⃣ *Contact Starting Number?*\n_(Example: 1)_", parse_mode="Markdown")
+        return
+
+    if mode == "ask_contact_start":
+        try:
+            state["contact_start"] = int(text)
+        except:
+            bot.send_message(message.chat.id, "❌ Enter a valid number.")
+            return
+        state["mode"] = "ask_limit"
+        bot.send_message(message.chat.id, "5️⃣ *Contacts per VCF file?*\n_(Example: 50)_", parse_mode="Markdown")
+        return
+
+    if mode == "ask_limit":
+        try:
+            limit = int(text)
+        except:
+            bot.send_message(message.chat.id, "❌ Enter a valid number.")
+            return
+
+        numbers = state["numbers"]
+        bot.send_message(
+            message.chat.id,
+            f"🚀 *Generating VCF Files*\n━━━━━━━━━━━━━━━\n"
+            f"📊 Total Contacts: {len(numbers)}\n⚡ Status: Processing...",
+            parse_mode="Markdown"
+        )
+
+        chunks = [numbers[i:i+limit] for i in range(0, len(numbers), limit)]
+        contact_counter = state["contact_start"]
+
+        for idx, chunk in enumerate(chunks):
+            vcf_data = ""
+            for num in chunk:
+                vcf_data += f"BEGIN:VCARD\nVERSION:3.0\nFN:{state['prefix']} {contact_counter}\nTEL;TYPE=CELL:{num}\nEND:VCARD\n"
+                contact_counter += 1
+
+            filename = f"{state['file_name']}{state['vcf_start'] + idx}.vcf"
+            with open(filename, "w") as f:
+                f.write(vcf_data)
+
+            with open(filename, "rb") as f:
+                bot.send_document(message.chat.id, f)
+            os.remove(filename)
+
+        bot.send_message(message.chat.id, "✅ *VCF Generation Completed Successfully!* 🎉", parse_mode="Markdown")
+        user_state.pop(user_id, None)
+        return
+
+    # ── VCF TO TXT ─────────────────────────────────────────────
+    if mode == "vcf_to_txt":
+        if text == "/done":
+            state["animating"] = False
+            time.sleep(0.6)
+
+            final_text = (
+                f"📄 *Final Result*\n━━━━━━━━━━━━━━━\n"
+                f"📁 Files Processed: {state.get('files', 0)}\n"
+                f"📊 Total Extracted: {len(state['numbers'])}\n"
+                f"✅ Finished!"
+            )
+
+            if state.get("msg_id"):
+                try:
+                    bot.edit_message_text(
+                        final_text,
+                        message.chat.id,
+                        state["msg_id"],
+                        parse_mode="Markdown"
+                    )
+                except:
+                    pass
+            else:
+                bot.send_message(message.chat.id, final_text, parse_mode="Markdown")
+
+            state["step"] = "ask_name"
+            bot.send_message(message.chat.id, "📝 *Enter the name for your .txt file:*\n_(Example: ExtractedList)_", parse_mode="Markdown")
+        return
+
+    if mode == "vcf_to_txt" and state.get("step") == "ask_name":
+        filename = f"{text}.txt"
+        with open(filename, "w") as f:
+            f.write("\n".join(state["numbers"]))
+
+        with open(filename, "rb") as f:
+            bot.send_document(message.chat.id, f)
+        os.remove(filename)
+
+        bot.send_message(message.chat.id, "✅ *Extraction Completed Successfully!* 🎉", parse_mode="Markdown")
+        user_state.pop(user_id, None)
+        return
+
+    # ── MERGE VCF ──────────────────────────────────────────────
+    if mode == "merge_vcf":
+        step = state.get("step")
+
+        if step == "ask_filename":
+            state["filename"] = text
+            state["step"] = "ask_prefix"
+            bot.send_message(message.chat.id, "✏️ *Enter contact name prefix:*", parse_mode="Markdown")
+            return
+
+        if step == "ask_prefix":
+            state["prefix"] = text
+            state["step"] = "collecting"
+            state["all_numbers"] = []
+            bot.send_message(message.chat.id, "📤 *Send all VCF files, then type* `DONE`", parse_mode="Markdown")
+            return
+
+        if text.upper() == "DONE" and step == "collecting":
+            numbers = list(set(state.get("all_numbers", [])))
+
+            if not numbers:
+                bot.send_message(message.chat.id, "❌ No data found.")
+                return
+
+            vcf_data = ""
+            for i, num in enumerate(numbers):
+                vcf_data += f"BEGIN:VCARD\nVERSION:3.0\nFN:{state['prefix']} {i+1}\nTEL;TYPE=CELL:{num}\nEND:VCARD\n"
+
+            filename = f"{state['filename']}.vcf"
+            with open(filename, "w") as f:
+                f.write(vcf_data)
+
+            with open(filename, "rb") as f:
+                bot.send_document(message.chat.id, f)
+            os.remove(filename)
+
+            user_state.pop(user_id, None)
+            bot.send_message(message.chat.id, "✅ *All VCF files merged!* 🎉", parse_mode="Markdown")
+            return
+
+# ============================================================
+# 🔹 Helper: Start Modes
+# ============================================================
+def start_txt_to_vcf(message, user_id):
+    user_state[user_id] = {
+        "mode": "collect",
+        "numbers": [],
+        "files": 0,
+        "start_time": time.time()
+    }
+    bot.send_message(
+        message.chat.id,
+        "📥 *Send Contacts*\n═══════════════\n📂 Numbers / .txt / .xlsx\n\n✅ *Finish* → Type `/done`",
+        parse_mode="Markdown"
+    )
+
+def start_vcf_to_txt(message, user_id):
+    user_state[user_id] = {
+        "mode": "vcf_to_txt",
+        "numbers": [],
+        "files": 0,
+        "msg_id": None,
+        "start_time": time.time(),
+        "total_lines": 0,
+        "processed_lines": 0,
+        "animating": False
+    }
+    bot.send_message(
+        message.chat.id,
+        "📤 *Upload VCF Files*\n━━━━━━━━━━━━━━━\n📁 Send one or multiple `.vcf` files\n\n✅ *Finish* → Type `/done`",
+        parse_mode="Markdown"
+    )
+
+def start_merge_vcf(message, user_id):
+    user_state[user_id] = {
+        "mode": "merge_vcf",
+        "step": "ask_filename"
+    }
+    bot.send_message(message.chat.id, "📝 *Enter output VCF file name:*", parse_mode="Markdown")
+
+# ============================================================
+# 🔹 Animate Progress
+# ============================================================
+def animate_progress(chat_id, msg_id, state):
+    last_done = 0
+    last_time = time.time()
+
+    while state.get("animating"):
+        time.sleep(0.5)
+        total = max(state.get("total_lines", 1), 1)
+        done = state.get("processed_lines", 0)
+
+        now = time.time()
+        speed = (done - last_done) / (now - last_time) if (now - last_time) > 0 else 0
+        last_done = done
+        last_time = now
+
+        percent = min(int((done / total) * 100), 100)
+        filled = int(percent / 5)
+        bar = "█" * filled + "░" * (20 - filled)
+
+        text_msg = (
+            f"🚀 *VCF SCANNING*\n"
+            f"━━━━━━━━━━━━━━━\n\n"
+            f"📁 Files: {state.get('files', 0)}\n"
+            f"📊 Extracted: {len(state.get('numbers', []))}\n\n"
+            f"📈 Progress: `{bar} {percent}%`\n\n"
+            f"⚡ Speed: {speed:.0f} lines/sec\n"
+            f"🔄 {done}/{total} lines"
+        )
+
+        try:
+            bot.edit_message_text(text_msg, chat_id, msg_id, parse_mode="Markdown")
+        except:
+            pass
+
+# ============================================================
+# 🔹 Process VCF File
+# ============================================================
+def process_vcf_file(path, state):
+    with open(path, encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            state["total_lines"] += 1
+            line = line.strip()
+            if "TEL" in line.upper():
+                num = line.split(":")[-1].strip()
+                num = num.replace(" ", "").replace("-", "").replace("+", "")
+                if num.isdigit() and len(num) >= 8:
+                    state["numbers"].append(num)
+            state["processed_lines"] += 1
+    try:
+        os.remove(path)
     except:
         pass
 
-    welcome = (
-        "🔥 <b>WELCOME TO VCF CONVERTER BOT</b> 🔥\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "<code>[+] Status: Online</code>\n"
-        "<code>[+] Mode: Render Web Service</code>\n\n"
-        "👇 <i>Select a service below:</i>"
+# ============================================================
+# 🔹 FILE HANDLER
+# ============================================================
+@bot.message_handler(content_types=["document"])
+def handle_files(message):
+    user_id = message.from_user.id
+    state = user_state.get(user_id)
+    doc = message.document
+    filename = doc.file_name.lower()
+
+    if not state:
+        bot.send_message(message.chat.id, "⚠️ Please select an option from menu first.")
+        return
+
+    file_info = bot.get_file(doc.file_id)
+    path = f"{user_id}_{filename}"
+
+    downloaded = bot.download_file(file_info.file_path)
+    with open(path, "wb") as f:
+        f.write(downloaded)
+
+    mode = state.get("mode")
+
+    # ── TXT file for TEXT TO VCF ──────────────────────────────
+    if filename.endswith(".txt") and mode == "collect":
+        with open(path) as f:
+            for line in f:
+                num = line.strip().replace(" ", "").replace("-", "").replace("+", "")
+                if num.isdigit() and len(num) >= 8:
+                    state["numbers"].append(num)
+        os.remove(path)
+        bot.send_message(
+            message.chat.id,
+            f"📥 *Contacts Added:* {len(state['numbers'])}\n✅ Send more or type `/done`",
+            parse_mode="Markdown"
+        )
+        return
+
+    # ── XLSX file for TEXT TO VCF ─────────────────────────────
+    if filename.endswith(".xlsx") and mode == "collect":
+        try:
+            from openpyxl import load_workbook
+            wb = load_workbook(path)
+            sheet = wb.active
+            for row in sheet.iter_rows(values_only=True):
+                for cell in row:
+                    if cell:
+                        num = str(cell).strip().replace(" ", "").replace("-", "").replace("+", "")
+                        if num.isdigit() and len(num) >= 8:
+                            state["numbers"].append(num)
+        except Exception as e:
+            bot.send_message(message.chat.id, f"❌ XLSX error: {e}")
+        os.remove(path)
+        bot.send_message(
+            message.chat.id,
+            f"📥 *Contacts Added:* {len(state['numbers'])}\n✅ Send more or type `/done`",
+            parse_mode="Markdown"
+        )
+        return
+
+    # ── VCF file for VCF TO TXT ───────────────────────────────
+    if filename.endswith(".vcf") and mode == "vcf_to_txt":
+        state["files"] = state.get("files", 0) + 1
+
+        if not state.get("msg_id"):
+            msg = bot.send_message(message.chat.id, "📄 *Starting scan...*", parse_mode="Markdown")
+            state["msg_id"] = msg.message_id
+            state["animating"] = True
+            state["total_lines"] = 0
+            state["processed_lines"] = 0
+
+            threading.Thread(
+                target=animate_progress,
+                args=(message.chat.id, msg.message_id, state),
+                daemon=True
+            ).start()
+
+        threading.Thread(
+            target=process_vcf_file,
+            args=(path, state),
+            daemon=True
+        ).start()
+        return
+
+    # ── VCF file for MERGE VCF ────────────────────────────────
+    if filename.endswith(".vcf") and mode == "merge_vcf":
+        if "all_numbers" not in state:
+            state["all_numbers"] = []
+
+        with open(path, encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                if "TEL" in line.upper():
+                    num = line.split(":")[-1].strip()
+                    num = num.replace(" ", "").replace("-", "").replace("+", "")
+                    if num.isdigit() and len(num) >= 8:
+                        state["all_numbers"].append(num)
+
+        os.remove(path)
+        bot.send_message(message.chat.id, f"✅ File added. Send more or type `DONE`", parse_mode="Markdown")
+        return
+
+    # ── Invalid ───────────────────────────────────────────────
+    try:
+        os.remove(path)
+    except:
+        pass
+    bot.send_message(message.chat.id, "❌ Invalid file type for current mode.")
+
+# ============================================================
+# 🔹 /help
+# ============================================================
+@bot.message_handler(commands=["help"])
+def help_cmd(message):
+    bot.send_message(
+        message.chat.id,
+        (
+            "📖 *VCF Tool Bot — Help*\n"
+            "━━━━━━━━━━━━━━━\n\n"
+            "📁 *Text to VCF* — Convert numbers to VCF\n"
+            "📄 *VCF to Text* — Extract numbers from VCF\n"
+            "👑 *Admin/Navy VCF* — Admin stats\n"
+            "🔄 *Merge VCF* — Merge multiple VCF files\n"
+            "✂️ *Split VCF* — Split contacts into files\n"
+            "⚙️ *My Subscription* — Check your plan\n\n"
+            "📞 *Support:* @Vikky_IND"
+        ),
+        parse_mode="Markdown"
     )
 
-    bot.send_message(uid, welcome, reply_markup=main_menu())
-
-# ================= SERVICE ROUTER =================
-@bot.message_handler(func=lambda m: m.text in ["Text to VCF", "VCF to Text"])
-def service_router(message):
-    uid = message.chat.id
-    txt = message.text
-
-    if txt == "Text to VCF":
-        user_data[uid] = {'state': 'COLLECT_T2V', 'nums': [], 'msg_id': None}
-        bot.send_message(
-            uid,
-            "📥 <b>Send Contacts</b>\n━━━━━━━━━━━━━━━\n"
-            "📂 Send Numbers or Text File\n\n"
-            "✅ Finish Type → <code>/done</code>",
-            reply_markup=types.ReplyKeyboardRemove()
-        )
-
-    elif txt == "VCF to Text":
-        user_data[uid] = {'state': 'COLLECT_V2T', 'nums': [], 'msg_id': None}
-        bot.send_message(
-            uid,
-            "📤 <b>Upload VCF Files</b>\n━━━━━━━━━━━━━━━\n"
-            "📁 Send one or multiple .vcf files\n\n"
-            "✅ Finish Type → <code>/done</code>",
-            reply_markup=types.ReplyKeyboardRemove()
-        )
-
-# ================= UNIVERSAL HANDLER =================
-@bot.message_handler(content_types=['text', 'document'])
-def universal_handler(message):
-    uid = message.chat.id
-
-    if uid not in user_data:
-        return
-
-    state = user_data[uid].get('state', 'IDLE')
-    txt = message.text.strip() if message.text else ""
-
-    if txt.lower() == "/cancel":
-        user_data[uid] = {'state': 'IDLE'}
-        bot.send_message(uid, "❌ Cancelled.", reply_markup=main_menu())
-        return
-
-    extracted = []
-
-    # ---------- FILE READ ----------
-    if message.document:
-        try:
-            file_info = bot.get_file(message.document.file_id)
-            downloaded = bot.download_file(file_info.file_path)
-            content = downloaded.decode("utf-8", errors="ignore")
-            extracted = extract_numbers(content)
-        except:
-            extracted = []
-
-    elif txt.lower() != "/done":
-        extracted = extract_numbers(txt)
-
-    # ==================================================
-    # TEXT TO VCF
-    # ==================================================
-    if state == "COLLECT_T2V":
-
-        if txt.lower() == "/done":
-            total = len(user_data[uid]['nums'])
-
-            if total == 0:
-                bot.send_message(uid, "❌ No contacts collected.", reply_markup=main_menu())
-                return
-
-            user_data[uid]['state'] = "T2V_STEP_1"
-            bot.send_message(uid, f"✅ Collected {total} numbers.")
-            bot.send_message(uid, "1️⃣ Enter VCF File Name")
-            return
-
-        user_data[uid]['nums'].extend(extracted)
-        total = len(user_data[uid]['nums'])
-
-        msg = (
-            f"📥 <b>Collecting Contacts</b>\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"📊 Total Added: <code>{total}</code>\n\n"
-            f"Send More...\n"
-            f"Finish → /done"
-        )
-
-        if not user_data[uid]['msg_id']:
-            m = bot.send_message(uid, msg)
-            user_data[uid]['msg_id'] = m.message_id
-        else:
-            try:
-                bot.edit_message_text(msg, uid, user_data[uid]['msg_id'])
-            except:
-                pass
-
-    elif state == "T2V_STEP_1":
-        user_data[uid]['vname'] = txt
-        user_data[uid]['state'] = "T2V_STEP_2"
-        bot.send_message(uid, "2️⃣ Enter Contact Prefix Name")
-
-    elif state == "T2V_STEP_2":
-        user_data[uid]['prefix'] = txt
-        user_data[uid]['state'] = "T2V_STEP_3"
-        bot.send_message(uid, "3️⃣ Starting File Number")
-
-    elif state == "T2V_STEP_3":
-        user_data[uid]['vstart'] = int(txt) if txt.isdigit() else 1
-        user_data[uid]['state'] = "T2V_STEP_4"
-        bot.send_message(uid, "4️⃣ Starting Contact Number")
-
-    elif state == "T2V_STEP_4":
-        user_data[uid]['cstart'] = int(txt) if txt.isdigit() else 1
-        user_data[uid]['state'] = "T2V_STEP_5"
-        bot.send_message(uid, "5️⃣ Contacts Per File")
-
-    elif state == "T2V_STEP_5":
-
-        limit = int(txt) if txt.isdigit() else 50
-        d = user_data[uid]
-
-        nums = list(dict.fromkeys(d['nums']))
-        v_idx = d['vstart']
-        c_idx = d['cstart']
-
-        bot.send_message(uid, f"🚀 Generating {len(nums)} Contacts")
-
-        for i in range(0, len(nums), limit):
-            chunk = nums[i:i+limit]
-
-            if len(nums) > limit:
-                fname = f"{d['vname']}{v_idx}.vcf"
-            else:
-                fname = f"{d['vname']}.vcf"
-
-            vcf = ""
-
-            for num in chunk:
-                vcf += f"BEGIN:VCARD\nVERSION:3.0\nFN:{d['prefix']} {c_idx}\nTEL:{num}\nEND:VCARD\n"
-                c_idx += 1
-
-            bio = BytesIO(vcf.encode("utf-8"))
-            bio.name = fname
-            bot.send_document(uid, bio)
-
-            v_idx += 1
-
-        bot.send_message(uid, "✅ VCF Completed", reply_markup=main_menu())
-        user_data[uid] = {'state': 'IDLE'}
-
-    # ==================================================
-    # VCF TO TEXT
-    # ==================================================
-    elif state == "COLLECT_V2T":
-
-        if txt.lower() == "/done":
-            total = len(user_data[uid]['nums'])
-
-            if total == 0:
-                bot.send_message(uid, "❌ No VCF collected.", reply_markup=main_menu())
-                return
-
-            user_data[uid]['state'] = "V2T_NAME"
-            bot.send_message(uid, f"✅ Extracted {total} numbers")
-            bot.send_message(uid, "📝 Enter TXT File Name")
-            return
-
-        user_data[uid]['nums'].extend(extracted)
-        total = len(user_data[uid]['nums'])
-
-        msg = (
-            f"📄 <b>Extracting Numbers</b>\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"📊 Total: <code>{total}</code>\n\n"
-            f"Send More VCF Files...\n"
-            f"Finish → /done"
-        )
-
-        if not user_data[uid]['msg_id']:
-            m = bot.send_message(uid, msg)
-            user_data[uid]['msg_id'] = m.message_id
-        else:
-            try:
-                bot.edit_message_text(msg, uid, user_data[uid]['msg_id'])
-            except:
-                pass
-
-    elif state == "V2T_NAME":
-
-        nums = list(dict.fromkeys(user_data[uid]['nums']))
-        file_text = "\n".join(nums)
-
-        bio = BytesIO(file_text.encode("utf-8"))
-        bio.name = txt + ".txt"
-
-        bot.send_document(uid, bio, caption="✅ Numbers Extracted")
-        bot.send_message(uid, "✅ Completed", reply_markup=main_menu())
-
-        user_data[uid] = {'state': 'IDLE'}
-
-# ================= RUN BOT =================
+# ============================================================
+# 🔹 Run Bot
+# ============================================================
 def run_bot():
-    while True:
-        try:
-            print("Bot Running...")
-            bot.infinity_polling(skip_pending=True, timeout=30, long_polling_timeout=30)
-        except Exception as e:
-            print("Error:", e)
-            time.sleep(5)
+    print("✅ Bot starting with pyTelegramBotAPI...")
+    if not TOKEN:
+        print("❌ BOT_TOKEN missing!")
+        return
+    bot.infinity_polling(timeout=10, long_polling_timeout=5)
 
-threading.Thread(target=run_bot).start()
+threading.Thread(target=run_bot, daemon=True).start()
 
-# ================= START WEB =================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    port = int(os.getenv("PORT", 5000))
+    web.run(host="0.0.0.0", port=port)
