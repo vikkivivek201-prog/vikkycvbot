@@ -19,8 +19,6 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 
 bot = telebot.TeleBot(TOKEN)
 
-
-
 # ============================================================
 # 🔹 MAIN MENU — Colored Buttons + Animated Emoji
 # ============================================================
@@ -29,39 +27,38 @@ def main_menu():
     
     # Row 1
     kb.row(
-        types.KeyboardButton("Text to VCF", style="primary", icon_custom_emoji_id="5433653135799228968"),
-        types.KeyboardButton("VCF to Text", style="primary", icon_custom_emoji_id="5431736674147114227")
+        types.KeyboardButton("📁 Text to VCF", style="primary", icon_custom_emoji_id="5433653135799228968"),
+        types.KeyboardButton("📄 VCF to Text", style="primary", icon_custom_emoji_id="5431736674147114227")
     )
     
     # Row 2
     kb.row(
-        types.KeyboardButton("Manual VCF", style="danger", icon_custom_emoji_id="5334882760735598374"),
-        types.KeyboardButton("Manual Text", style="danger", icon_custom_emoji_id="5334882760735598374")
+        types.KeyboardButton("📄 Manual VCF", style="success", icon_custom_emoji_id="6266995104687330978"),
+        types.KeyboardButton("📁 Manual Text", style="primary", icon_custom_emoji_id="5334673106202010226")
     )
     
     # Row 3
     kb.row(
-        types.KeyboardButton("Merge VCF", style="primary", icon_custom_emoji_id="5264727218734524899"),
-        types.KeyboardButton("Merge Text", style="primary", icon_custom_emoji_id="5264727218734524899s")
+        types.KeyboardButton("🔄 Merge VCF", style="primary", icon_custom_emoji_id="5264727218734524899"),
+        types.KeyboardButton("✂️ Split Text", style="primary", icon_custom_emoji_id="5258477770735885832")
     )
     
     # Row 4
     kb.row(
-        types.KeyboardButton("Split VCF", style="danger", icon_custom_emoji_id="5237808360882977239"),
-        types.KeyboardButton("Split Text", style="danger", icon_custom_emoji_id="5237808360882977239")
-    )
-
-    kb.row(
-        types.KeyboardButton("VCF Editer", style="primary", icon_custom_emoji_id="5334673106202010226"),
-        types.KeyboardButton("Get VCF details", style="primary", icon_custom_emoji_id="5188217332748527444")
+        types.KeyboardButton("✍️ VCF Editer", style="primary", icon_custom_emoji_id="5237808360882977239"),
+        types.KeyboardButton("🔍Get VCF details", style="danger", icon_custom_emoji_id="5893382531037794941")
     )
     
     # Row 5
     kb.row(
-        types.KeyboardButton("My Subscription", style="success", icon_custom_emoji_id="5445353829304387411")
+        types.KeyboardButton("💳 Premium", style="success", icon_custom_emoji_id="5902432207519093015")
     )
     
     return kb
+
+# ============================================================
+# 🔹 Inline Colored Buttons (for start message)
+# ============================================================
 
 # ============================================================
 # 🔹 User State
@@ -124,23 +121,23 @@ def handle_text(message):
 
     # ── MENU BUTTONS ──────────────────────────────────────────
 
-    if text == "Text to VCF":
+    if text == "📁 Text to VCF":
         start_txt_to_vcf(message, user_id)
         return
 
-    if text == "VCF to Text":
+    if text == "📄 VCF to Text":
         start_vcf_to_txt(message, user_id)
         return
 
-    if text == "Manual VCF":
+    if text == "📄 Manual VCF":
         start_merge_vcf(message, user_id)
         return
 
-    if text == "Manual Text":
+    if text == "📁 Manual Text":
         bot.send_message(message.chat.id, "✂️ Use *Text to VCF* with a contact limit.", parse_mode="Markdown")
         return
 
-    if text == "Admin/Navy VCF":
+    if text == "👑 Admin/Navy VCF":
         if user_id == ADMIN_ID:
             users = load_users()
             bot.send_message(message.chat.id, f"👥 *Total Users:* {len(users)}", parse_mode="Markdown")
