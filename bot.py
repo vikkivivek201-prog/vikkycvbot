@@ -263,10 +263,9 @@ def handle_text(message):
                     f"✅ Finish → /done"
                     )
                 data["msg_id"] = msg.message_id
-                    )
+                )
             except:
                 pass
-            
             state["step"] = "ask_file_name"
             bot.send_message(message.chat.id, "1️⃣ VCF File Name?\n(Example: Hongkong)")
             return
