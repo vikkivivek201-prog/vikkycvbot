@@ -253,17 +253,16 @@ def handle_text(message):
 
 # DONE OF TEXT TO VCF
         if text == "/done":
-            if not data.get("numbers"):
-                bot.send_message(message.chat.id, "❌ No contacts added yet.")
-                return
-
-            try:
-                bot.edit_message_text(
-                    f"📥 Collected Contacts\n━━━━━━━━━━━━━━━\n"
-                    f"📊 Final Added: {len(data['numbers'])}\n"
-                    f"✅ Finished!",
+            if not data.get("msg_id"):
+                msg = bot.send_message(
                     message.chat.id,
-                    data["msg_id"]
+                    f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
+                    f"📊 Total Added: {len(data.get('numbers', []))}\n"
+                    f"⏳ Status: Processing...\n\n"
+                    f"📂 Keep sending files/numbers\n"
+                    f"✅ Finish → /done"
+                    )
+                data["msg_id"] = msg.message_id
                     )
             except:
                 pass
@@ -359,27 +358,36 @@ def handle_text(message):
                             user_state.pop(message.from_user.id, None)
                             return
 
-		# NUMBER ADD
-
+                        added = 0
                         for n in text.split():
                             n = n.replace("+", "").replace("-", "").replace(" ", "")
                             if n.isdigit() and len(n) >= 8:
                                 data.setdefault("numbers", []).append(n)
-
-
-                                try:
-                                    bot.edit_message_text(
+                                added += 1
+                                if not data.get("msg_id") and added > 0:
+                                    msg = bot.send_message(
+                                        message.chat.id,
                                         f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-                                        f"📊 Total Added: {len(data.get('numbers', []))}\n"
+                                        f"📊 Total Added: {len(data['numbers'])}\n"
                                         f"⏳ Status: Processing...\n\n"
                                         f"📂 Keep sending files/numbers\n"
-                                        f"✅ Finish → /done",
-                                        message.chat.id,
-                                        data["msg_id"]
+                                        f"✅ Finish → /done"
                                         )
-                                except:
-                                    pass
-                                return
+                                    data["msg_id"] = msg.message_id
+
+                                elif data.get("msg_id") and added > 0:
+                                    try:
+                                        bot.edit_message_text(
+                                            f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
+                                            f"📊 Total Added: {len(data['numbers'])}\n"
+                                            f"⏳ Status: Processing...\n\n"
+                                            f"📂 Keep sending files/numbers\n"
+                                            f"✅ Finish → /done",
+                                            message.chat.id,
+                                            data["msg_id"]
+                                            )
+                                    except:
+                                        pass
 
     # ── VCF TO TXT ─────────────────────────────────────────────
     if mode == "vcf_to_txt":
@@ -504,13 +512,16 @@ def generate_vcf_files(message, state, user_id, limit):
 def start_txt_to_vcf(message, user_id):
 	set_mode(user_id, "txt_to_vcf")
 
-	msg = bot.send_message(
+	user_state[user_id]["data"] = {
+		"numbers": [],
+		"msg_id": None   # 👈 IMPORTANT
+	}
+
+	bot.send_message(
 		message.chat.id,
-		"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-		"📊 Total Added: 0\n"
-		"⏳ Status: Processing...\n\n"
-		"📂 Send numbers / .txt / .xlsx\n"
-		"✅ Finish → /done"
+		"📥 Send Contacts\n═══════════════\n"
+		"📂 Numbers / .txt / .xlsx\n\n"
+		"✅ Finish → Type /done"
 	)
 
 	user_state[user_id]["data"] = {
