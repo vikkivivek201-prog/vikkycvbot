@@ -40,13 +40,13 @@ def main_menu():
     # Row 3
     kb.row(
         types.KeyboardButton("Merge VCF", style="primary", icon_custom_emoji_id="5264727218734524899"),
-        types.KeyboardButton("Merge Text", style="primary", icon_custom_emoji_id="5264727218734524899")
+        types.KeyboardButton("Merge Text", style="primary", icon_custom_emoji_id="5264727218734524899s")
     )
     
     # Row 4
     kb.row(
         types.KeyboardButton("Split VCF", style="danger", icon_custom_emoji_id="5237808360882977239"),
-        types.KeyboardButton("Sllit Text", style="danger", icon_custom_emoji_id="5237808360882977239")
+        types.KeyboardButton("Split Text", style="danger", icon_custom_emoji_id="5237808360882977239")
     )
 
     kb.row(
@@ -56,14 +56,10 @@ def main_menu():
     
     # Row 5
     kb.row(
-        types.KeyboardButton("My Premium", style="success", icon_custom_emoji_id="5445353829304387411")
+        types.KeyboardButton("My Subscription", style="success", icon_custom_emoji_id="5445353829304387411")
     )
     
     return kb
-
-# ============================================================
-# 🔹 Inline Colored Buttons (for start message)
-# ============================================================
 
 # ============================================================
 # 🔹 User State
@@ -98,21 +94,92 @@ def progress_bar(current, total):
 # 🔹 /start
 # ============================================================
 @bot.message_handler(commands=["start"])
-def start(message):
-    users = load_users()
-    uid = str(message.from_user.id)
+def start(update: Update, context: CallbackContext):
+    uid = update.message.chat_id
+    bot = context.bot
 
-    if uid not in users:
-        users[uid] = {"premium": False}
-        save_users(users)
+    # 💻 ULTRA PRO ANIMATION FRAMES
+    frames = [
+        "[>_] INITIALIZING SYSTEM...\nEstablishing Secure Connection...\n[█░░░░░░░░░] 10%",
+        
+        "[>_] CONNECTING TO SERVERS...\nAuthorizing Access...\n[███░░░░░░░] 30%",
+        
+        "[>_] BYPASSING FIREWALL...\nDecrypting Modules...\n[█████░░░░░] 50%",
+        
+        "[>_] LOADING VCF ENGINE...\nOptimizing Performance...\n[███████░░░] 70%",
+        
+        "[>_] FINALIZING SETUP...\nLaunching Interface...\n[█████████░] 90%",
+        
+        "[✔] ACCESS GRANTED\nSYSTEM READY\n[██████████] 100%"
+    ]
+
+    # 🔹 Send first message
+    msg = bot.send_message(uid, f"<code>{frames[0]}</code>", parse_mode="HTML")
+
+    # 🔹 Animate
+    for frame in frames[1:]:
+        time.sleep(0.5)
+        try:
+            bot.edit_message_text(
+                f"<code>{frame}</code>",
+                chat_id=uid,
+                message_id=msg.message_id,
+                parse_mode="HTML"
+            )
+        except:
+            pass
+
+    time.sleep(0.4)
+
+    # 🔹 Delete animation
+    try:
+        bot.delete_message(chat_id=uid, message_id=msg.message_id)
+    except:
+        pass
+
+    # 🔥 FINAL WELCOME MESSAGE
+    WELCOME_TEXT = """╔══════════════════════════════╗
+        ⚡ ADVANCED VCF TOOL ⚡
+╚══════════════════════════════╝
+   🚀 Next-Gen Contact Manager
+
+━━━━━━━━━━━━━━━━━━━━━━━
+💡 WHAT THIS BOT CAN DO?
+━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 TEXT ⇄ VCF CONVERTER  
+➤ Instantly convert contacts with high accuracy  
+
+🧩 MULTI VCF MERGER  
+➤ Merge unlimited VCF files in seconds  
+
+✏️ ADVANCED VCF EDITOR  
+➤ Edit, filter & customize contacts easily  
+
+🛡️ ADMIN / NAVY VCF MODE  
+➤ Powerful tools for bulk & pro-level usage  
+
+━━━━━━━━━━━━━━━━━━━━━━━
+🎁 VIP ACCESS — 100% FREE
+━━━━━━━━━━━━━━━━━━━━━━━
+✨ No Subscription Required  
+✨ All Premium Features Unlocked  
+
+━━━━━━━━━━━━━━━━━━━━━━━
+👨‍💻 DEVELOPER
+━━━━━━━━━━━━━━━━━━━━━━━
+⚡ @Rule_Breakerz
+
+━━━━━━━━━━━━━━━━━━━━━━━
+🚀 READY TO START?
+━━━━━━━━━━━━━━━━━━━━━━━
+👉 Use buttons below to begin!
+"""
 
     bot.send_message(
-        message.chat.id,
-        (
-            "🔥 *WELCOME TO VCF TOOL BOT* 🔥\n"
-        ),
-        parse_mode="Markdown",
-        reply_markup=main_menu()
+        uid,
+        WELCOME_TEXT,
+        reply_markup=ReplyKeyboardMarkup(main_menu, resize_keyboard=True)
     )
 
 # ============================================================
