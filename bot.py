@@ -114,21 +114,19 @@ def run_animation(uid, name, username, user_id):
     WELCOME_TEXT = f"""╔══════════════════════════════╗
         ⚡ VCF TOOL BOT ⚡
 ╚══════════════════════════════╝
-        🚀 Welcome Dashboard
 
-━━━━━━━━━━━━━━━━━━━━━━━
-👤 USER PROFILE
-━━━━━━━━━━━━━━━━━━━━━━━
-🆔 Name   : {name}  
+<blockquote>
+👤 Name : {name}  
 🔗 Username : {username}  
-🆔 ID     : {user_id}  
+🆔 ID : {user_id}  
 💎 Status : PREMIUM ACCESS 🔓  
+</blockquote>
 
 ━━━━━━━━━━━━━━━━━━━━━━━
 🛠️ BOT INFORMATION
 ━━━━━━━━━━━━━━━━━━━━━━━
 🤖 System  : Advanced VCF Engine  
-👨‍💻 Dev    : @Rule_Breakerz  
+👨‍💻 Dev    : @Vikky_IND  
 
 ━━━━━━━━━━━━━━━━━━━━━━━
 🆘 SUPPORT
@@ -141,7 +139,12 @@ def run_animation(uid, name, username, user_id):
 👇 Select a service from the menu below
 """
 
-    bot.send_message(uid, WELCOME_TEXT, reply_markup=main_menu())
+    bot.send_message(
+    uid,
+    WELCOME_TEXT,
+    parse_mode="HTML",
+    reply_markup=main_menu()
+)
 
 
 # ============================================================
