@@ -19,10 +19,12 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 
 bot = telebot.TeleBot(TOKEN)
 
+
+
 # ============================================================
 # 🔹 MAIN MENU — Colored Buttons + Animated Emoji
 # ============================================================
-main_menu():
+def main_menu():
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
     
     # Row 1
