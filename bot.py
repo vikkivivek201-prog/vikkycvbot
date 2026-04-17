@@ -595,7 +595,6 @@ def handle_files(message):
                 if num.isdigit() and len(num) >= 8:
                     state["numbers"].append(num)
         os.remove(path)
-        return
 
         # 🔥 SAME MESSAGE UPDATE (NO NEW MESSAGE)
         if not state.get("msg_id"):
@@ -638,7 +637,7 @@ def handle_files(message):
         except Exception as e:
             bot.send_message(message.chat.id, f"❌ XLSX error: {e}")
         os.remove(path)
-        return
+
         # 🔥 SAME MESSAGE UPDATE (NO NEW MESSAGE)
         if not state.get("msg_id"):
             msg = bot.send_message(
