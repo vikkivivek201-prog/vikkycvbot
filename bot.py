@@ -45,19 +45,19 @@ def main_menu():
 
     # Row 4
     kb.row(
-        types.KeyboardButton("Split VCF", style="danger", icon_custom_emoji_id="5258477770735885832"),
-        types.KeyboardButton("Split Text", style="danger", icon_custom_emoji_id="5258477770735885832")
+        types.KeyboardButton("Split VCF", style="danger", icon_custom_emoji_id="5237808360882977239"),
+        types.KeyboardButton("Split Text", style="danger", icon_custom_emoji_id="5237808360882977239")
     )
     
     # Row 5
     kb.row(
-        types.KeyboardButton("✍️ VCF Editer", style="primary", icon_custom_emoji_id="5237808360882977239"),
-        types.KeyboardButton("🔍Get VCF details", style="danger", icon_custom_emoji_id="5893382531037794941")
+        types.KeyboardButton("VCF Editer", style="primary", icon_custom_emoji_id="5188217332748527444"),
+        types.KeyboardButton("Get VCF details", style="primary", icon_custom_emoji_id="5188217332748527444")
     )
     
     # Row 5
     kb.row(
-        types.KeyboardButton("💳 Premium", style="success", icon_custom_emoji_id="5902432207519093015")
+        types.KeyboardButton("My Subscription", style="success", icon_custom_emoji_id="5422683699130933153")
     )
     
     return kb
