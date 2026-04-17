@@ -297,12 +297,12 @@ def handle_text(message):
                                     )
                             except:
                                 pass
-
-    if mode == "ask_name":
-        state["file_name"] = text
-        state["mode"] = "ask_prefix"
-        bot.send_message(message.chat.id, "2️⃣ *Contact Name Prefix?*\n_(Example: Vikky Boss)_", parse_mode="Markdown")
-        return
+                            
+                            if mode == "ask_name":
+                                state["file_name"] = text
+                                state["mode"] = "ask_prefix"
+                                bot.send_message(message.chat.id, "2️⃣ *Contact Name Prefix?*\n_(Example: Vikky Boss)_", parse_mode="Markdown")
+                                return
 
     if mode == "ask_prefix":
         state["prefix"] = text
