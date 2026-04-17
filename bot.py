@@ -22,7 +22,7 @@ bot = telebot.TeleBot(TOKEN)
 # ============================================================
 # 🔹 MAIN MENU — Colored Buttons + Animated Emoji
 # ============================================================
-def main_menu():
+main_menu():
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
     
     # Row 1
