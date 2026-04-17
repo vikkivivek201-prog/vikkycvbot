@@ -160,6 +160,27 @@ def load_users():
     with open(USERS_FILE, "r") as f:
         return json.load(f)
 
+@bot.message_handler(commands=["addpremium"])
+def add_premium(message):
+    if message.from_user.id != ADMIN_ID:
+        bot.send_message(message.chat.id, "❌ Not allowed")
+        return
+    
+    try:
+        target = message.text.split()[1]
+        users = load_users()
+
+        if target not in users:
+            users[target] = {"premium": True}
+        else:
+            users[target]["premium"] = True
+
+        save_users(users)
+
+        bot.send_message(message.chat.id, f"✅ Premium Activated for {target}")
+    except:
+        bot.send_message(message.chat.id, "Usage: /addpremium user_id")
+
 def save_users(data):
     with open(USERS_FILE, "w") as f:
         json.dump(data, f, indent=4)
@@ -228,8 +249,12 @@ def handle_text(message):
         bot.send_message(message.chat.id, "✏️ *VCF Editor* feature coming soon!", parse_mode="Markdown")
         return
 
-    if text == "📑 Merge TEXT":
-        bot.send_message(message.chat.id, "📑 *Merge TEXT* feature coming soon!", parse_mode="Markdown")
+    if text == "Merge VCF":
+        if not is_premium(user_id):
+            bot.send_message(message.chat.id, "❌ Ye Premium Feature hai 🔒")
+            return
+
+        start_merge_vcf(message, user_id)
         return
 
     # ── STATE FLOWS ───────────────────────────────────────────
