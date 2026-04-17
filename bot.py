@@ -65,14 +65,20 @@ def main_menu():
 @bot.message_handler(commands=["start"])
 def start(message):
     uid = message.chat.id
-
-    # 🔹 USER DATA
     user = message.from_user
-    name = user.first_name
-    username = f"@{user.username}" if user.username else "No Username"
     user_id = user.id
 
-    # 🔥 animation me data pass kar
+    # 🔥 USERS.JSON CHECK
+    users = load_users()
+    if str(user_id) not in users:
+        users[str(user_id)] = {"premium": False}
+        save_users(users)
+
+    # 🔹 USER DATA
+    name = user.first_name
+    username = f"@{user.username}" if user.username else "No Username"
+
+    # 🔥 animation start
     threading.Thread(
         target=run_animation,
         args=(uid, name, username, user_id),
@@ -110,21 +116,22 @@ def run_animation(uid, name, username, user_id):
     except:
         pass
 
+status = "PREMIUM ACCESS 🔓" if is_premium(user_id) else "FREE USER 🔒"
     # 🔥 FINAL PRO WELCOME (DYNAMIC)
     WELCOME_TEXT = f"""╔═════════════════════════╗
-    🔥 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝐕𝐂𝐅 𝐌𝐀𝐒𝐓𝐄𝐑 🔥
+     🔥 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝐕𝐂𝐅 𝐌𝐀𝐒𝐓𝐄𝐑 🔥
 ╚═════════════════════════╝
 
 <blockquote>👤 Name : {name}  
 🔗 Username : {username}  
 🆔 ID : {user_id}  
-💎 Status : PREMIUM ACCESS 🔓  
+💎 Status : {status}
 </blockquote>
 <blockquote>━━━━━━━━━━━━━━━━━━━━━━━
 🛠️ BOT INFORMATION
 ━━━━━━━━━━━━━━━━━━━━━━━
 🤖 System  : Advanced VCF Engine  
-👨‍💻 Dev    : @Vikky_IND  
+👨‍💻 Owner   : @Vikky_IND  
 </blockquote>
 ━━━━━━━━━━━━━━━━━━━━━━━
 📩 Need help? Type → /help  
@@ -138,7 +145,7 @@ def run_animation(uid, name, username, user_id):
     reply_markup=main_menu()
 )
 
-
+USERS_FILE = "users.json"
 # ============================================================
 # 🔹 User State
 # ============================================================
@@ -148,16 +155,18 @@ user_state = {}
 # 🔹 Load / Save Users
 # ============================================================
 def load_users():
-    try:
-        with open("users.json", "r") as f:
-            return json.load(f)
-    except:
+    if not os.path.exists(USERS_FILE):
         return {}
+    with open(USERS_FILE, "r") as f:
+        return json.load(f)
 
 def save_users(data):
-    with open("users.json", "w") as f:
+    with open(USERS_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
+def is_premium(user_id):
+    users = load_users()
+    return users.get(str(user_id), {}).get("premium", False)
 
 # ============================================================
 # 🔹 Progress Bar
@@ -171,23 +180,6 @@ def progress_bar(current, total):
 # ============================================================
 # 🔹 /start
 # ============================================================
-@bot.message_handler(commands=["start"])
-def start(message):
-    users = load_users()
-    uid = str(message.from_user.id)
-
-    if uid not in users:
-        users[uid] = {"premium": False}
-        save_users(users)
-
-    bot.send_message(
-        message.chat.id,
-        (
-            "🔥 *WELCOME TO VCF TOOL BOT* 🔥\n"
-        ),
-        parse_mode="Markdown",
-        reply_markup=main_menu()
-    )
 
 # ============================================================
 # 🔹 TEXT HANDLER
