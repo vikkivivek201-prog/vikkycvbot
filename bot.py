@@ -251,8 +251,11 @@ def handle_text(message):
         data = state.get("data", {})
         text = message.text.strip()
 
-# DONE OF TEXT TO VCF
         if text == "/done":
+            if not data.get("numbers"):
+                bot.send_message(message.chat.id, "❌ No contacts added yet.")
+                return
+
             if not data.get("msg_id"):
                 msg = bot.send_message(
                     message.chat.id,
@@ -263,12 +266,21 @@ def handle_text(message):
                     f"✅ Finish → /done"
                     )
                 data["msg_id"] = msg.message_id
-                )
-            except:
-                pass
-            state["step"] = "ask_file_name"
-            bot.send_message(message.chat.id, "1️⃣ VCF File Name?\n(Example: Hongkong)")
-            return
+
+                try:
+                    bot.edit_message_text(
+                        f"📥 Collected Contacts\n━━━━━━━━━━━━━━━\n"
+                        f"📊 Final Added: {len(data['numbers'])}\n"
+                        f"✅ Finished!",
+                        message.chat.id,
+                        data["msg_id"]
+                        )
+                except:
+                    pass
+
+                state["step"] = "ask_file_name"
+                bot.send_message(message.chat.id, "1️⃣ VCF File Name?\n(Example: Hongkong)")
+                return
 
 # STEP BY STEP NAME ASKING
 
