@@ -62,9 +62,45 @@ def main_menu():
     
     return kb
 
-# ============================================================
-# 🔹 Inline Colored Buttons (for start message)
-# ============================================================
+@bot.message_handler(commands=["start"])
+def start(message):
+    uid = message.chat.id
+
+    threading.Thread(target=run_animation, args=(uid,), daemon=True).start()
+
+def run_animation(uid):
+    frames = [
+        "[>_] INITIALIZING SYSTEM...\nEstablishing Secure Connection...\n[█░░░░░░░░░] 10%",
+        "[>_] CONNECTING TO SERVERS...\nAuthorizing Access...\n[███░░░░░░░] 30%",
+        "[>_] BYPASSING FIREWALL...\nDecrypting Modules...\n[█████░░░░░] 50%",
+        "[>_] LOADING VCF ENGINE...\nOptimizing Performance...\n[███████░░░] 70%",
+        "[>_] FINALIZING SETUP...\nLaunching Interface...\n[█████████░] 90%",
+        "[✔] ACCESS GRANTED\nSYSTEM READY\n[██████████] 100%"
+    ]
+
+    msg = bot.send_message(uid, f"<code>{frames[0]}</code>", parse_mode="HTML")
+
+    for frame in frames[1:]:
+        time.sleep(0.5)
+        try:
+            bot.edit_message_text(
+                f"<code>{frame}</code>",
+                chat_id=uid,
+                message_id=msg.message_id,
+                parse_mode="HTML"
+            )
+        except:
+            pass
+
+    time.sleep(0.4)
+
+    try:
+        bot.delete_message(uid, msg.message_id)
+    except:
+        pass
+
+    bot.send_message(uid, "⚡ ADVANCED VCF TOOL\n👉 Use buttons below to begin!", reply_markup=main_menu())
+
 
 # ============================================================
 # 🔹 User State
