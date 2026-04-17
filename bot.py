@@ -62,6 +62,9 @@ def main_menu():
     
     return kb
 
+# ============================================================
+# 🔹 /start
+# ============================================================
 @bot.message_handler(commands=["start"])
 def start(message):
     uid = message.chat.id
@@ -168,26 +171,6 @@ def progress_bar(current, total):
     bar = "█" * filled + "░" * (20 - filled)
     return f"{bar} {percent}%"
 
-# ============================================================
-# 🔹 /start
-# ============================================================
-@bot.message_handler(commands=["start"])
-def start(message):
-    users = load_users()
-    uid = str(message.from_user.id)
-
-    if uid not in users:
-        users[uid] = {"premium": False}
-        save_users(users)
-
-    bot.send_message(
-        message.chat.id,
-        (
-            "🔥 *WELCOME TO VCF TOOL BOT* 🔥\n"
-        ),
-        parse_mode="Markdown",
-        reply_markup=main_menu()
-    )
 
 # ============================================================
 # 🔹 TEXT HANDLER (FIXED)
@@ -197,6 +180,7 @@ def handle_text(message):
     user_id = message.from_user.id
     text = message.text.strip()
     state = user_state.get(user_id)
+    mode = state.get("mode") if state else None
 
     # ── MENU BUTTONS ──────────────────────────────────────────
 
