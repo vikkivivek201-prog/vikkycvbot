@@ -116,8 +116,9 @@ def run_animation(uid, name, username, user_id):
     except:
         pass
 
-status = "PREMIUM ACCESS 🔓" if is_premium(user_id) else "FREE USER 🔒"
-    # 🔥 FINAL PRO WELCOME (DYNAMIC)
+    # ✅ YAHI PAR DAALNA HAI
+    status = "PREMIUM ACCESS 🔓" if is_premium(user_id) else "FREE USER 🔒"
+
     WELCOME_TEXT = f"""╔═════════════════════════╗
      🔥 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝐕𝐂𝐅 𝐌𝐀𝐒𝐓𝐄𝐑 🔥
 ╚═════════════════════════╝
@@ -127,23 +128,18 @@ status = "PREMIUM ACCESS 🔓" if is_premium(user_id) else "FREE USER 🔒"
 🆔 ID : {user_id}  
 💎 Status : {status}
 </blockquote>
-<blockquote>━━━━━━━━━━━━━━━━━━━━━━━
-🛠️ BOT INFORMATION
-━━━━━━━━━━━━━━━━━━━━━━━
-🤖 System  : Advanced VCF Engine  
-👨‍💻 Owner   : @Vikky_IND  
-</blockquote>
+
 ━━━━━━━━━━━━━━━━━━━━━━━
 📩 Need help? Type → /help  
 👇 Select a service from the menu below
 """
 
     bot.send_message(
-    uid,
-    WELCOME_TEXT,
-    parse_mode="HTML",
-    reply_markup=main_menu()
-)
+        uid,
+        WELCOME_TEXT,
+        parse_mode="HTML",
+        reply_markup=main_menu()
+    )
 
 USERS_FILE = "users.json"
 # ============================================================
