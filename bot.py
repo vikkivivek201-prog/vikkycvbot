@@ -190,7 +190,7 @@ def start(message):
     )
 
 # ============================================================
-# 🔹 TEXT HANDLER
+# 🔹 TEXT HANDLER (FIXED)
 # ============================================================
 @bot.message_handler(func=lambda m: True, content_types=["text"])
 def handle_text(message):
@@ -200,53 +200,61 @@ def handle_text(message):
 
     # ── MENU BUTTONS ──────────────────────────────────────────
 
-    if text == "📁 Text to VCF":
+    if text == "Text to VCF" or text == "Text to VCF":
         start_txt_to_vcf(message, user_id)
         return
 
-    if text == "📄 VCF to Text":
+    if text == "VCF to Text" or text == "VCF to Text":
         start_vcf_to_txt(message, user_id)
         return
 
-    if text == "📄 Manual VCF":
+    if text == "Manual VCF" or text == "Manual VCF":
+        bot.send_message(message.chat.id, "✏️ Send contacts manually to create VCF.")
+        return
+
+    if text == "Manual Text" or text == "Manual Text":
+        bot.send_message(message.chat.id, "✏️ Send text manually.")
+        return
+
+    if text == "Merge VCF" or text == "Merge VCF":
+        if not is_premium(user_id):
+            bot.send_message(message.chat.id, "❌ Ye Premium Feature hai 🔒")
+            return
         start_merge_vcf(message, user_id)
         return
 
-    if text == "📁 Manual Text":
-        bot.send_message(message.chat.id, "✂️ Use *Text to VCF* with a contact limit.", parse_mode="Markdown")
+    if text == "Merge Text" or text == "Merge Text":
+        bot.send_message(message.chat.id, "📑 Merge Text coming soon!")
         return
 
-    if text == "👑 Admin/Navy VCF":
-        if user_id == ADMIN_ID:
-            users = load_users()
-            bot.send_message(message.chat.id, f"👥 *Total Users:* {len(users)}", parse_mode="Markdown")
+    if text == "Split VCF" or text == "Split VCF":
+        bot.send_message(message.chat.id, "✂️ Split VCF coming soon!")
+        return
+
+    if text == "Split Text" or text == "Split Text":
+        bot.send_message(message.chat.id, "✂️ Split Text coming soon!")
+        return
+
+    if text == "VCF Editer" or text == "VCF Editer":
+        bot.send_message(message.chat.id, "✏️ VCF Editor coming soon!")
+        return
+
+    if text == "Get VCF details" or text == "Get VCF details":
+        bot.send_message(message.chat.id, "🔍 Send VCF file to get details.")
+        return
+
+    if text == "My Subscription" or text == "My Subscription":
+        if is_premium(user_id):
+            bot.send_message(message.chat.id, "💎 Status: PREMIUM 🔓")
         else:
-            bot.send_message(message.chat.id, "❌ Not allowed.")
+            bot.send_message(message.chat.id, "🔒 Status: FREE USER")
         return
 
-    if text == "⚙️ My Subscription":
-        bot.send_message(message.chat.id, "⚙️ *My Subscription*\n\nContact admin for premium.", parse_mode="Markdown")
-        return
-
-    if text == "🔍 Get Name":
-        bot.send_message(message.chat.id, "🔍 *Get Name* feature coming soon!", parse_mode="Markdown")
-        return
-
-    if text == "✏️ VCF Editor":
-        bot.send_message(message.chat.id, "✏️ *VCF Editor* feature coming soon!", parse_mode="Markdown")
-        return
-
-    if text == "📑 Merge TEXT":
-        bot.send_message(message.chat.id, "📑 *Merge TEXT* feature coming soon!", parse_mode="Markdown")
-        return
-
-    # ── STATE FLOWS ───────────────────────────────────────────
+    # ── STATE CHECK ───────────────────────────────────────────
 
     if not state:
         bot.send_message(message.chat.id, "⚠️ Please select an option from menu first.", reply_markup=main_menu())
         return
-
-    mode = state.get("mode")
 
     # ── TEXT TO VCF ────────────────────────────────────────────
     if mode == "collect":
