@@ -39,11 +39,17 @@ def main_menu():
     
     # Row 3
     kb.row(
-        types.KeyboardButton("🔄 Merge VCF", style="primary", icon_custom_emoji_id="5264727218734524899"),
-        types.KeyboardButton("✂️ Split Text", style="primary", icon_custom_emoji_id="5258477770735885832")
+        types.KeyboardButton("Merge VCF", style="primary", icon_custom_emoji_id="5264727218734524899"),
+        types.KeyboardButton("Merge Text", style="primary", icon_custom_emoji_id="5264727218734524899")
+    )
+
+    # Row 4
+    kb.row(
+        types.KeyboardButton("Split VCF", style="danger", icon_custom_emoji_id="5258477770735885832"),
+        types.KeyboardButton("Split Text", style="danger", icon_custom_emoji_id="5258477770735885832")
     )
     
-    # Row 4
+    # Row 5
     kb.row(
         types.KeyboardButton("✍️ VCF Editer", style="primary", icon_custom_emoji_id="5237808360882977239"),
         types.KeyboardButton("🔍Get VCF details", style="danger", icon_custom_emoji_id="5893382531037794941")
