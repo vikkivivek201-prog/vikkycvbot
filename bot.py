@@ -33,8 +33,8 @@ def main_menu():
     
     # Row 2
     kb.row(
-        types.KeyboardButton("Manual VCF", style="danger", icon_custom_emoji_id="5334882760735598374"),
-        types.KeyboardButton("Manual Text", style="danger", icon_custom_emoji_id="5334673106202010226")
+        types.KeyboardButton("Manual VCF", style="danger", icon_custom_emoji_id="5258500400918587241"),
+        types.KeyboardButton("Manual Text", style="danger", icon_custom_emoji_id="5258500400918587241")
     )
     
     # Row 3
@@ -45,7 +45,7 @@ def main_menu():
     
     # Row 4
     kb.row(
-        types.KeyboardButton("VCF Editer", style="danger", icon_custom_emoji_id="5334882760735598374"),
+        types.KeyboardButton("VCF Editer", style="danger", icon_custom_emoji_id="5334673106202010226"),
         types.KeyboardButton("Get VCF details", style="danger", icon_custom_emoji_id="5188217332748527444")
     )
     
