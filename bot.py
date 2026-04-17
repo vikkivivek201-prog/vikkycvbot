@@ -62,6 +62,30 @@ def main_menu():
     
     return kb
 
+USERS_FILE = "users.json"
+# ============================================================
+# 🔹 User State
+# ============================================================
+user_state = {}
+
+# ============================================================
+# 🔹 Load / Save Users
+# ============================================================
+def load_users():
+    if not os.path.exists(USERS_FILE):
+        return {}
+    with open(USERS_FILE, "r") as f:
+        return json.load(f)
+
+def save_users(data):
+    with open(USERS_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+def is_premium(user_id):
+    users = load_users()
+    return users.get(str(user_id), {}).get("premium", False)
+
+
 @bot.message_handler(commands=["start"])
 def start(message):
     uid = message.chat.id
@@ -118,7 +142,7 @@ def run_animation(uid, name, username, user_id):
 
     # ✅ YAHI PAR DAALNA HAI
     status = "PREMIUM ACCESS 🔓" if is_premium(user_id) else "FREE USER 🔒"
-
+    
     WELCOME_TEXT = f"""╔═════════════════════════╗
      🔥 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝐕𝐂𝐅 𝐌𝐀𝐒𝐓𝐄𝐑 🔥
 ╚═════════════════════════╝
@@ -141,20 +165,6 @@ def run_animation(uid, name, username, user_id):
         reply_markup=main_menu()
     )
 
-USERS_FILE = "users.json"
-# ============================================================
-# 🔹 User State
-# ============================================================
-user_state = {}
-
-# ============================================================
-# 🔹 Load / Save Users
-# ============================================================
-def load_users():
-    if not os.path.exists(USERS_FILE):
-        return {}
-    with open(USERS_FILE, "r") as f:
-        return json.load(f)
 
 @bot.message_handler(commands=["addpremium"])
 def add_premium(message):
@@ -176,14 +186,6 @@ def add_premium(message):
         bot.send_message(message.chat.id, f"✅ Premium Activated for {target}")
     except:
         bot.send_message(message.chat.id, "Usage: /addpremium user_id")
-
-def save_users(data):
-    with open(USERS_FILE, "w") as f:
-        json.dump(data, f, indent=4)
-
-def is_premium(user_id):
-    users = load_users()
-    return users.get(str(user_id), {}).get("premium", False)
 
 # ============================================================
 # 🔹 Progress Bar
@@ -209,23 +211,23 @@ def handle_text(message):
 
     # ── MENU BUTTONS ──────────────────────────────────────────
 
-    if text == "📁 Text to VCF":
+    if text == "Text to VCF":
         start_txt_to_vcf(message, user_id)
         return
 
-    if text == "📄 VCF to Text":
+    if text == "VCF to Text":
         start_vcf_to_txt(message, user_id)
         return
 
-    if text == "📄 Manual VCF":
+    if text == "Manual VCF":
         start_merge_vcf(message, user_id)
         return
 
-    if text == "📁 Manual Text":
+    if text == "Manual Text":
         bot.send_message(message.chat.id, "✂️ Use *Text to VCF* with a contact limit.", parse_mode="Markdown")
         return
 
-    if text == "👑 Admin/Navy VCF":
+    if text == "Admin/Navy VCF":
         if user_id == ADMIN_ID:
             users = load_users()
             bot.send_message(message.chat.id, f"👥 *Total Users:* {len(users)}", parse_mode="Markdown")
@@ -233,15 +235,15 @@ def handle_text(message):
             bot.send_message(message.chat.id, "❌ Not allowed.")
         return
 
-    if text == "⚙️ My Subscription":
+    if text == "My Subscription":
         bot.send_message(message.chat.id, "⚙️ *My Subscription*\n\nContact admin for premium.", parse_mode="Markdown")
         return
 
-    if text == "🔍 Get Name":
+    if text == "Get Name":
         bot.send_message(message.chat.id, "🔍 *Get Name* feature coming soon!", parse_mode="Markdown")
         return
 
-    if text == "✏️ VCF Editor":
+    if text == "VCF Editor":
         bot.send_message(message.chat.id, "✏️ *VCF Editor* feature coming soon!", parse_mode="Markdown")
         return
 
@@ -654,15 +656,16 @@ def help_cmd(message):
 # ============================================================
 # 🔹 Run Bot
 # ============================================================
+# ============================================================
+# 🔹 RUN BOT + WEB
+# ============================================================
 def run_bot():
-    print("✅ Bot starting with pyTelegramBotAPI...")
-    if not TOKEN:
-        print("❌ BOT_TOKEN missing!")
-        return
-    bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    print("🤖 Bot started...")
+    bot.infinity_polling()
 
-threading.Thread(target=run_bot, daemon=True).start()
+def run_web():
+    web.run(host="0.0.0.0", port=8080)
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
-    web.run(host="0.0.0.0", port=port)
+    threading.Thread(target=run_web).start()
+    run_bot()
