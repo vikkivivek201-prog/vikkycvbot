@@ -494,11 +494,16 @@ def start_txt_to_vcf(message, user_id):
 # ============================================================
 def handle_txt_input(message, state):
     text = message.text.strip()
+    # 🔒 prevent duplicate first message
+    if state.get("processing_msg_active"):
+        return
+    state["processing_msg_active"] = True
 
     # 👉 DONE CLICK
     if text == "/done":
         if not state["numbers"]:
             bot.send_message(message.chat.id, "❌ No contacts added yet.")
+            state["processing_msg_active"] = False
             return
 
         # ✅ EDIT SAME MESSAGE
@@ -561,6 +566,7 @@ def handle_txt_input(message, state):
             )
         except:
             pass
+            state["processing_msg_active"] = False
 
     return
 
