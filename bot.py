@@ -10,9 +10,6 @@ from threading import Lock
 # GLOBALS
 msg_lock = Lock()
 
-@web.route('/')
-def home():
-    return "Bot is running!"
 
 # 🔹 CONFIGURATION
 TOKEN = os.getenv("BOT_TOKEN")
@@ -22,6 +19,10 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 bot = telebot.TeleBot(TOKEN)
 web = Flask(__name__)
 user_state = {}
+
+@web.route('/')
+def home():
+    return "Bot is running!"
 
 
 # ============================================================
