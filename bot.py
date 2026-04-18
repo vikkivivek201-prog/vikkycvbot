@@ -185,7 +185,7 @@ def help_cmd(message):
     bot.send_message(
         message.chat.id,
         """
-types.KeyboardButton("🛠 HELP CENTER ", icon_custom_emoji_id="5264727218734524899")
+   🛠 HELP CENTER 🛠
 ━━━━━━━━━━━━━━━━━━━━━
 🔥 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝐕𝐂𝐅 𝐌𝐀𝐒𝐓𝐄𝐑 🔥
 Here is a quick guide to help you use all premium features efficiently:
