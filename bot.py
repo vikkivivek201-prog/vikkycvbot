@@ -255,28 +255,38 @@ def handle_text(message):
             return
 
     # ── VCF TO TXT ─────────────────────────────────────────────
-    if mode == "vcf_to_txt":
-        if text == "/done":
-            if not state["numbers"]:
-                bot.send_message(message.chat.id, "❌ No data extracted yet.")
-                return
+    if mode == "vcf_to_txt" and text == "/done":
+        if not state["numbers"]:
+            bot.send_message(message.chat.id, "❌ No data found.")
+            return
 
-            if state.get("msg_id"):
-                try:
-                    bot.edit_message_text(
-                        f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n"
-                        f"📁 Files Processed: {state['files']}\n"
-                        f"📊 Final Extracted: {len(state['numbers'])}\n"
-                        f"✅ Finished!",
-                        message.chat.id,
-                        state["msg_id"]
-                        )
-                except:
-                    pass
+        final_text = (
+            f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n"
+            f"📁 Files Processed: {state.get('files', 0)}\n"
+            f"📊 Final Extracted: {len(state['numbers'])}\n"
+            f"✅ Finished!"
+        )
+
+        if state.get("msg_id"):
+            try:
+                bot.edit_message_text(
+                    final_text,
+                    message.chat.id,
+                    state["msg_id"]
+                )
+            except:
+                pass
+            else:
+                bot.send_message(message.chat.id, final_text)
 
             state["step"] = "ask_name"
-            bot.send_message(message.chat.id, "📝 Enter the name for your .txt file:\nExample: ExtractedList")
-            return
+
+            bot.send_message(
+                message.chat.id,
+                "📝 Enter the name for your .txt file:\nExample: ExtractedList"
+                )
+
+        return
 
     # FILE NAME
         if state.get("step") == "ask_name":
@@ -739,19 +749,19 @@ def handle_files(message):
     # VCF → TXT
     # ============================================================
     if filename.endswith(".vcf") and mode == "vcf_to_txt":
-        state["files"] += 1
+        state["files"] = state.get("files", 0) + 1
 
         with open(path, encoding="utf-8", errors="ignore") as f:
             for line in f:
                 if "TEL" in line.upper():
                     num = line.split(":")[-1].strip()
-                    num = num.replace("+", "").replace("-", "").replace(" ", "")
+                    num = num.replace(" ", "").replace("-", "").replace("+", "")
                     if num.isdigit() and len(num) >= 8:
                         state["numbers"].append(num)
 
-                        os.remove(path)
+        os.remove(path)
 
-    # FIRST MESSAGE
+    # ✅ SAME MESSAGE UPDATE
         if not state.get("msg_id"):
             msg = bot.send_message(
                 message.chat.id,
@@ -761,10 +771,8 @@ def handle_files(message):
                 f"⏳ Status: Scanning...\n\n"
                 f"📂 Keep sending files\n"
                 f"✅ Finish Type → /done"
-                )
+            )
             state["msg_id"] = msg.message_id
-
-    # UPDATE SAME MESSAGE
         else:
             try:
                 bot.edit_message_text(
@@ -776,11 +784,11 @@ def handle_files(message):
                     f"✅ Finish Type → /done",
                     message.chat.id,
                     state["msg_id"]
-                    )
+                )
             except:
                 pass
 
-            return
+        return
 
     # ============================================================
     # MERGE VCF
