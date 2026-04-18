@@ -257,45 +257,48 @@ def handle_text(message):
     # ── VCF TO TXT ─────────────────────────────────────────────
     if mode == "vcf_to_txt":
         if text == "/done":
-            state["animating"] = False
-            time.sleep(0.6)
-
-            final_text = (
-                f"📄 *Final Result*\n━━━━━━━━━━━━━━━\n"
-                f"📁 Files Processed: {state.get('files', 0)}\n"
-                f"📊 Total Extracted: {len(state['numbers'])}\n"
-                f"✅ Finished!"
-            )
+            if not state["numbers"]:
+                bot.send_message(message.chat.id, "❌ No data extracted yet.")
+                return
 
             if state.get("msg_id"):
                 try:
                     bot.edit_message_text(
-                        final_text,
+                        f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n"
+                        f"📁 Files Processed: {state['files']}\n"
+                        f"📊 Final Extracted: {len(state['numbers'])}\n"
+                        f"✅ Finished!",
                         message.chat.id,
-                        state["msg_id"],
-                        parse_mode="Markdown"
-                    )
+                        state["msg_id"]
+                        )
                 except:
                     pass
-            else:
-                bot.send_message(message.chat.id, final_text, parse_mode="Markdown")
 
             state["step"] = "ask_name"
-            bot.send_message(message.chat.id, "📝 *Enter the name for your .txt file:*\n_(Example: ExtractedList)_", parse_mode="Markdown")
-        return
+            bot.send_message(message.chat.id, "📝 Enter the name for your .txt file:\nExample: ExtractedList")
+            return
 
-    if mode == "vcf_to_txt" and state.get("step") == "ask_name":
-        filename = f"{text}.txt"
-        with open(filename, "w") as f:
-            f.write("\n".join(state["numbers"]))
+    # FILE NAME
+        if state.get("step") == "ask_name":
+            filename = f"{text}.txt"
 
-        with open(filename, "rb") as f:
-            bot.send_document(message.chat.id, f)
-        os.remove(filename)
+            with open(filename, "w") as f:
+                f.write("\n".join(state["numbers"]))
 
-        bot.send_message(message.chat.id, "✅ *Extraction Completed Successfully!* 🎉", parse_mode="Markdown")
-        user_state.pop(user_id, None)
-        return
+            with open(filename, "rb") as f:
+                bot.send_document(
+                    message.chat.id,
+                    f,
+                    caption="✅ Extracted Numbers"
+                    )
+
+                os.remove(filename)
+
+                bot.send_message(message.chat.id, "✅ Extraction Completed Successfully! 🎉")
+                user_state.pop(user_id, None)
+                return
+    
+    
 
     # ── MERGE VCF ──────────────────────────────────────────────
     if mode == "merge_vcf":
@@ -563,24 +566,20 @@ def generate_vcf_files_clean(message, state, user_id, limit):
     bot.send_message(message.chat.id, "✅ VCF Generation Completed Successfully! 🎉")
     user_state.pop(user_id, None)
 
-
-
 def start_vcf_to_txt(message, user_id):
     user_state[user_id] = {
         "mode": "vcf_to_txt",
         "numbers": [],
         "files": 0,
-        "msg_id": None,
-        "start_time": time.time(),
-        "total_lines": 0,
-        "processed_lines": 0,
-        "animating": False
+        "msg_id": None
     }
+
     bot.send_message(
         message.chat.id,
-        "📤 *Upload VCF Files*\n━━━━━━━━━━━━━━━\n📁 Send one or multiple `.vcf` files\n\n✅ *Finish* → Type `/done`",
-        parse_mode="Markdown"
+        "📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send one or multiple .vcf files\n\n✅ Finish Type → /done"
     )
+
+
 
 def start_merge_vcf(message, user_id):
     user_state[user_id] = {
@@ -742,23 +741,46 @@ def handle_files(message):
     if filename.endswith(".vcf") and mode == "vcf_to_txt":
         state["files"] += 1
 
+        with open(path, encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                if "TEL" in line.upper():
+                    num = line.split(":")[-1].strip()
+                    num = num.replace("+", "").replace("-", "").replace(" ", "")
+                    if num.isdigit() and len(num) >= 8:
+                        state["numbers"].append(num)
+
+                        os.remove(path)
+
+    # FIRST MESSAGE
         if not state.get("msg_id"):
-            msg = bot.send_message(message.chat.id, "📄 *Starting scan...*", parse_mode="Markdown")
+            msg = bot.send_message(
+                message.chat.id,
+                f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n"
+                f"📁 Files Uploaded: {state['files']}\n"
+                f"📊 Extracted: {len(state['numbers'])}\n"
+                f"⏳ Status: Scanning...\n\n"
+                f"📂 Keep sending files\n"
+                f"✅ Finish Type → /done"
+                )
             state["msg_id"] = msg.message_id
-            state["animating"] = True
 
-            threading.Thread(
-                target=animate_progress,
-                args=(message.chat.id, msg.message_id, state),
-                daemon=True
-            ).start()
+    # UPDATE SAME MESSAGE
+        else:
+            try:
+                bot.edit_message_text(
+                    f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n"
+                    f"📁 Files Uploaded: {state['files']}\n"
+                    f"📊 Extracted: {len(state['numbers'])}\n"
+                    f"⏳ Status: Scanning...\n\n"
+                    f"📂 Keep sending files\n"
+                    f"✅ Finish Type → /done",
+                    message.chat.id,
+                    state["msg_id"]
+                    )
+            except:
+                pass
 
-        threading.Thread(
-            target=process_vcf_file,
-            args=(path, state),
-            daemon=True
-        ).start()
-        return
+            return
 
     # ============================================================
     # MERGE VCF
