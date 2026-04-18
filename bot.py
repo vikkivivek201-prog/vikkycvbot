@@ -526,26 +526,6 @@ def handle_txt_input(message, state):
         )
         return
 
-    # 👉 NUMBER INPUT
-    added = 0
-    lines = text.split()
-
-    for n in lines:
-        n = n.replace("+", "").replace("-", "").replace(" ", "")
-        if n.isdigit() and len(n) >= 8:
-            state["numbers"].append(n)
-            added += 1
-
-    if added == 0:
-        return
-
-    msg_text = (
-        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-        f"📊 Total Added: {len(state['numbers'])}\n"
-        f"⏳ Status: Processing...\n\n"
-        f"📂 Keep sending numbers\n"
-        f"✅ Finish Type → /done"
-    )
 
     with msg_lock:
         if not state.get("msg_id"):
@@ -793,7 +773,7 @@ def process_vcf_file(path, state):
 def handle_files(message):
     user_id = message.from_user.id
     state = user_state.get(user_id)
-    print("FILE RECEIVED:", filename, mode)
+
     
     if not state:
         bot.send_message(message.chat.id, "⚠️ Please select an option from menu first.")
@@ -884,39 +864,7 @@ def handle_files(message):
     # ============================================================
     # VCF → TXT
     # ============================================================
-    # ✅ VCF → TXT (PRO VERSION - THREAD SAFE)
-    if filename.endswith(".txt") and mode == "txt_to_vcf":
-
-        with open(path) as f:
-            for line in f:
-                n = line.strip().replace("+", "").replace("-", "").replace(" ", "")
-                if n.isdigit() and len(n) >= 8:
-                    state["numbers"].append(n)
-
-        os.remove(path)
-
-        msg_text = (
-            f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-            f"📊 Total Added: {len(state['numbers'])}\n"
-            f"⏳ Status: Processing...\n\n"
-            f"📂 Keep sending numbers/files\n"
-            f"✅ Finish Type → /done"
-        )
-
-        try:
-            if not state.get("msg_id"):
-                msg = bot.send_message(message.chat.id, msg_text)
-                state["msg_id"] = msg.message_id
-            else:
-                bot.edit_message_text(
-                    msg_text,
-                    message.chat.id,
-                    state["msg_id"]
-                )
-        except:
-            pass
-
-        return
+    
 
     # ============================================================
     # MERGE VCF
