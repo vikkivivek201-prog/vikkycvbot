@@ -502,15 +502,17 @@ def handle_txt_input(message, state):
             return
 
         # ✅ EDIT SAME MESSAGE
-        if state.get("msg_id"):
-            try:
-                bot.edit_message_text(
-                    f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-                    f"📊 Final Added: {len(state['numbers'])}\n"
-                    f"✅ Finished!",
+        with msg_lock:
+            if not state.get("msg_id"):
+                msg = bot.send_message(
                     message.chat.id,
-                    state["msg_id"]
+                    f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
+                    f"📊 Total Added: {len(state['numbers'])}\n"
+                    f"⏳ Status: Processing...\n\n"
+                    f"📂 Keep sending numbers\n"
+                    f"✅ Finish Type → /done"
                 )
+                state["msg_id"] = msg.message_id
             except:
                 pass
 
@@ -811,16 +813,17 @@ def handle_files(message):
     # ============================================================
     if mode == "txt_to_vcf" and (filename.endswith(".txt") or filename.endswith(".xlsx")):
 
-        if not state.get("msg_id"):
-            msg = bot.send_message(
-                message.chat.id,
-                f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-                f"📊 Total Added: {len(state['numbers'])}\n"
-                f"⏳ Status: Processing...\n\n"
-                f"📂 Keep sending files/numbers\n"
-                f"✅ Finish Type → /done"
-            )
-            state["msg_id"] = msg.message_id
+        with msg_lock:
+            if not state.get("msg_id"):
+                msg = bot.send_message(
+                    message.chat.id,
+                    f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
+                    f"📊 Total Added: {len(state['numbers'])}\n"
+                    f"⏳ Status: Processing...\n\n"
+                    f"📂 Keep sending files/numbers\n"
+                    f"✅ Finish Type → /done"
+                )
+        state["msg_id"] = msg.message_id
         else:
             try:
                 bot.edit_message_text(
