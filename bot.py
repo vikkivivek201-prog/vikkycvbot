@@ -98,7 +98,7 @@ def run_animation(uid, name, username, user_id):
     msg = bot.send_message(uid, f"<code>{frames[0]}</code>", parse_mode="HTML")
 
     for frame in frames[1:]:
-        time.sleep(0.15)
+        time.sleep(0.25)
         try:
             bot.edit_message_text(
                 f"<code>{frame}</code>",
@@ -118,7 +118,7 @@ def run_animation(uid, name, username, user_id):
 
     # 🔥 FINAL PRO WELCOME (DYNAMIC)
     WELCOME_TEXT = f"""╔════════════════════════╗
-     🔥 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝐕𝐂𝐅 𝐌𝐀𝐒𝐓𝐄𝐑 🔥
+    🔥 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝐕𝐂𝐅 𝐌𝐀𝐒𝐓𝐄𝐑 🔥
 ╚════════════════════════╝
 
 <blockquote>👤 Name : {name}  
