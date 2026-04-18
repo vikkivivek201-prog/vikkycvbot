@@ -36,7 +36,7 @@ def main_menu():
     
     # Row 2
     kb.row(
-        types.KeyboardButton("Manual VCF", style="danger", icon_custom_emoji_id="5334882760735598374"),
+        types.KeyboardButton("Admin/Navy VCF", style="danger", icon_custom_emoji_id="6266995104687330978"),
         types.KeyboardButton("Manual Text", style="danger", icon_custom_emoji_id="5334882760735598374")
     )
     
@@ -184,109 +184,122 @@ def progress_bar(current, total):
 def help_cmd(message):
     bot.send_message(
         message.chat.id,
-        """🛠️ VCF BOT — COMPLETE USAGE GUIDE 🛠️
+        """
+🛠️ VCF BOT — COMPLETE USAGE GUIDE 🛠️
 ━━━━━━━━━━━━━━━━━━━━━━━
-⚡ Step-by-step guide for all features
+⚡ Step-by-step features overview
 ━━━━━━━━━━━━━━━━━━━━━━━
 
 👋 GETTING STARTED
-• Use /start to begin the bot
-• Use /done when you finish uploading files
-• Use /cancel to stop any active process
+• /start → Start bot
+• /done → Finish upload
+• /cancel → Stop process
 
-<blockquote>━━━━━━━━━━━━━━━━━━━━━━━
-📁 1. TEXT → VCF (CONTACT CREATION)
+<blockquote>
+━━━━━━━━━━━━━━━━━━━━━━━
+📁 1. TEXT ➝ VCF
 ✔ Convert numbers into VCF file
 
 🔹 Steps:
-1. Send TXT/XLSX or raw numbers
-2. Bot auto-detects numbers
-3. Wait for processing
-4. Download VCF file  
+• Send TXT / XLSX / Numbers
+• Bot auto-detects data
+• Processing starts
+• Get VCF file
 </blockquote>
 
-<blockquote>━━━━━━━━━━━━━━━━━━━━━━━
-📄 2. VCF → TEXT (EXTRACT CONTACTS)
-✔ Extract numbers from VCF
+<blockquote>
+━━━━━━━━━━━━━━━━━━━━━━━
+📄 2. VCF ➝ TEXT
+✔ Extract contacts from VCF
 
 🔹 Steps:
-1. Upload VCF file
-2. Bot scans contacts
-3. TXT file generated
-4. Download output  
+• Upload VCF file
+• Bot scans contacts
+• TXT file generated
+• Download output
 </blockquote>
 
-<blockquote>━━━━━━━━━━━━━━━━━━━━━━━
+<blockquote>
+━━━━━━━━━━━━━━━━━━━━━━━
 🔗 3. MERGE VCF
 ✔ Combine multiple VCF files
 
 🔹 Steps:
-1. Send multiple VCF files
-2. Bot collects them
-3. Use /done → merged file ready  
+• Send multiple VCFs
+• Bot collects files
+• Use /done
+• Get merged file
 </blockquote>
 
-<blockquote>━━━━━━━━━━━━━━━━━━━━━━━
+<blockquote>
+━━━━━━━━━━━━━━━━━━━━━━━
 ✂️ 4. SPLIT VCF
-✔ Split large VCF into parts
+✔ Split large file
 
 🔹 Steps:
-1. Upload large VCF
-2. Bot splits automatically
-3. Download all parts  
+• Upload VCF
+• Auto split process
+• Download parts
 </blockquote>
 
-<blockquote>━━━━━━━━━━━━━━━━━━━━━━━
+<blockquote>
+━━━━━━━━━━━━━━━━━━━━━━━
 🧩 5. VCF EDITOR
-✔ Modify names/prefix
+✔ Edit names / prefix
 
 🔹 Steps:
-1. Upload VCF
-2. Set name/prefix
-3. Get edited file  
+• Upload VCF
+• Set name/prefix
+• Get edited file
 </blockquote>
 
-<blockquote>━━━━━━━━━━━━━━━━━━━━━━━
-👑 6. ADMIN / NAVY MODE
-✔ Auto categorize contacts
+<blockquote>
+━━━━━━━━━━━━━━━━━━━━━━━
+👑 6. ADMIN MODE
+⚓ NAVY MODE
+✔ Auto contact grouping
 
 🔹 Steps:
-1. Upload files
-2. Select mode
-3. Bot creates segmented VCF  
+• Upload files
+• Select mode
+• Get segmented VCF
 </blockquote>
 
-<blockquote>━━━━━━━━━━━━━━━━━━━━━━━
-📑 7. MERGE TEXT FILES
-✔ Combine TXT numbers
+<blockquote>
+━━━━━━━━━━━━━━━━━━━━━━━
+📑 7. MERGE TXT
+✔ Combine text files
 
 🔹 Steps:
-1. Send TXT files
-2. Bot merges all numbers
-3. Final TXT generated  
+• Send TXT files
+• Bot merges numbers
+• Final TXT ready
 </blockquote>
 
-<blockquote>━━━━━━━━━━━━━━━━━━━━━━━
+<blockquote>
+━━━━━━━━━━━━━━━━━━━━━━━
 🔍 8. VCF SCANNER
 ✔ Preview contacts
 
 🔹 Steps:
-1. Upload VCF
-2. Bot shows names + numbers
-3. Preview before processing  
+• Upload VCF
+• View names & numbers
+• Check before use
 </blockquote>
 
-<blockquote>━━━━━━━━━━━━━━━━━━━━━━━
+<blockquote>
+━━━━━━━━━━━━━━━━━━━━━━━
 💡 PRO TIPS
-✔ Send files one by one
-✔ Use /done after upload
-✔ Use /cancel to stop process
-✔ Avoid corrupted files
+✔ Send files one by one  
+✔ Always use /done  
+✔ Use /cancel anytime  
+✔ Avoid broken files  
+</blockquote>
 
 ━━━━━━━━━━━━━━━━━━━━━━━  
-</blockquote>
 👨‍💻 Owner: @Vikky_IND
-"""
+""",
+        parse_mode="HTML"
     )
 
 @bot.message_handler(commands=["cancel"])
@@ -323,7 +336,7 @@ def handle_text(message):
         start_vcf_to_txt(message, user_id)
         return
 
-    if text == "Manual VCF" or text == "Manual VCF":
+    if text == "Admin/Navy VCF" or text == "Manual VCF":
         bot.send_message(message.chat.id, "✏️ Send contacts manually to create VCF.")
         return
 
