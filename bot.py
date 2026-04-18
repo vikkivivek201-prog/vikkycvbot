@@ -424,12 +424,14 @@ def handle_txt_input(message, state):
 
     # 👉 NUMBER INPUT
     added = 0
-    for n in text.split():
-        n = n.replace("+", "").replace("-", "").replace(" ", "")
-        if n.isdigit() and len(n) >= 8:
-            data["numbers"].append(n)
-            added += 1
+    lines = text.splitlines()
+    for line in lines:
+        for n in line.split():
+            n = n.replace("+", "").replace("-", "").replace(" ", "")
 
+            if n.isdigit() and len(n) >= 8:
+                state["numbers"].append(n)
+                added += 1
     if added == 0:
         return
 
