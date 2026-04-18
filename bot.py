@@ -793,6 +793,7 @@ def process_vcf_file(path, state):
 def handle_files(message):
     user_id = message.from_user.id
     state = user_state.get(user_id)
+    print("FILE RECEIVED:", filename, mode)
     
     if not state:
         bot.send_message(message.chat.id, "⚠️ Please select an option from menu first.")
@@ -884,49 +885,36 @@ def handle_files(message):
     # VCF → TXT
     # ============================================================
     # ✅ VCF → TXT (PRO VERSION - THREAD SAFE)
-    if filename.endswith(".vcf") and mode == "vcf_to_txt":
+    if filename.endswith(".txt") and mode == "txt_to_vcf":
 
-        with msg_lock:  # 🔥 LOCK
+        with open(path) as f:
+            for line in f:
+                n = line.strip().replace("+", "").replace("-", "").replace(" ", "")
+                if n.isdigit() and len(n) >= 8:
+                    state["numbers"].append(n)
 
-            state["files"] = state.get("files", 0) + 1
+        os.remove(path)
 
-            with open(path, encoding="utf-8", errors="ignore") as f:
-                for line in f:
-                    if "TEL" in line.upper():
-                        num = line.split(":")[-1].strip()
-                        num = num.replace(" ", "").replace("-", "").replace("+", "")
-                        if num.isdigit() and len(num) >= 8:
-                            state["numbers"].append(num)
+        msg_text = (
+            f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
+            f"📊 Total Added: {len(state['numbers'])}\n"
+            f"⏳ Status: Processing...\n\n"
+            f"📂 Keep sending numbers/files\n"
+            f"✅ Finish Type → /done"
+        )
 
-            os.remove(path)
-
-        # ✅ SINGLE MESSAGE
-            if state["msg_id"] is None:
-                msg = bot.send_message(
-                    message.chat.id,
-                    f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n"
-                    f"📁 Files Uploaded: {state['files']}\n"
-                    f"📊 Extracted: {len(state['numbers'])}\n"
-                    f"⏳ Status: Scanning...\n\n"
-                    f"📂 Keep sending files\n"
-                    f"✅ Finish Type → /done"
-                )
+        try:
+            if not state.get("msg_id"):
+                msg = bot.send_message(message.chat.id, msg_text)
                 state["msg_id"] = msg.message_id
-
             else:
-                try:
-                    bot.edit_message_text(
-                        f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n"
-                        f"📁 Files Uploaded: {state['files']}\n"
-                        f"📊 Extracted: {len(state['numbers'])}\n"
-                        f"⏳ Status: Scanning...\n\n"
-                        f"📂 Keep sending files\n"
-                        f"✅ Finish Type → /done",
-                        message.chat.id,
-                        state["msg_id"]
-                    )
-                except:
-                    pass
+                bot.edit_message_text(
+                    msg_text,
+                    message.chat.id,
+                    state["msg_id"]
+                )
+        except:
+            pass
 
         return
 
