@@ -501,22 +501,22 @@ def handle_txt_input(message, state):
             bot.send_message(message.chat.id, "❌ No contacts added yet.")
             return
 
-        # final update
         final_msg = (
             f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
             f"📊 Final Added: {len(state['numbers'])}\n"
             f"✅ Finished!"
         )
 
-        if state.get("msg_id"):
-            try:
-                bot.edit_message_text(
-                    final_msg,
-                    message.chat.id,
-                    state["msg_id"]
-                )
-            except:
-                pass
+        with msg_lock:
+            if state.get("msg_id"):
+                try:
+                    bot.edit_message_text(
+                        final_msg,
+                        message.chat.id,
+                        state["msg_id"]
+                    )
+                except:
+                    pass
 
         state["step"] = "ask_file_name"
 
@@ -525,6 +525,42 @@ def handle_txt_input(message, state):
             "📝 1️⃣ VCF File Name?\n(Example: Brazil)"
         )
         return
+
+    # 👉 NUMBER INPUT
+    added = 0
+    lines = text.split()
+
+    for n in lines:
+        n = n.replace("+", "").replace("-", "").replace(" ", "")
+        if n.isdigit() and len(n) >= 8:
+            state["numbers"].append(n)
+            added += 1
+
+    if added == 0:
+        return
+
+    msg_text = (
+        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
+        f"📊 Total Added: {len(state['numbers'])}\n"
+        f"⏳ Status: Processing...\n\n"
+        f"📂 Keep sending numbers\n"
+        f"✅ Finish Type → /done"
+    )
+
+    with msg_lock:
+        if not state.get("msg_id"):
+            msg = bot.send_message(message.chat.id, msg_text)
+            state["msg_id"] = msg.message_id
+        else:
+            try:
+                bot.edit_message_text(
+                    msg_text,
+                    message.chat.id,
+                    state["msg_id"]
+                )
+            except:
+                msg = bot.send_message(message.chat.id, msg_text)
+                state["msg_id"] = msg.message_id
 
     # 👉 NUMBER INPUT
     added = 0
