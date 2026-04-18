@@ -247,14 +247,6 @@ def handle_text(message):
         return
 
     # ── TEXT TO VCF ────────────────────────────────────────────
-    if mode == "txt_to_vcf":
-        if state.get("step") == "collecting":
-            handle_txt_input(message, state)
-        else:
-            handle_txt_steps(message, state, user_id)
-            return
-
-    # ── VCF TO TXT ─────────────────────────────────────────────
     if mode == "vcf_to_txt" and text == "/done":
         if not state["numbers"]:
             bot.send_message(message.chat.id, "❌ No data found.")
@@ -267,6 +259,7 @@ def handle_text(message):
             f"✅ Finished!"
         )
 
+    # ✅ ONLY EDIT — NO NEW MESSAGE
         if state.get("msg_id"):
             try:
                 bot.edit_message_text(
@@ -276,15 +269,13 @@ def handle_text(message):
                 )
             except:
                 pass
-            else:
-                bot.send_message(message.chat.id, final_text)
 
-            state["step"] = "ask_name"
+        state["step"] = "ask_name"
 
-            bot.send_message(
-                message.chat.id,
-                "📝 Enter the name for your .txt file:\nExample: ExtractedList"
-                )
+        bot.send_message(
+            message.chat.id,
+            "📝 Enter the name for your .txt file:\nExample: ExtractedList"
+        )
 
         return
 
