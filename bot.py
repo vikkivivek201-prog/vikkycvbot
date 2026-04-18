@@ -276,30 +276,27 @@ def handle_text(message):
             message.chat.id,
             "📝 Enter the name for your .txt file:\nExample: ExtractedList"
         )
-
         return
 
-    # FILE NAME
-        if state.get("step") == "ask_name":
-            filename = f"{text}.txt"
+    # 👉 FILE NAME INPUT
+    if mode == "vcf_to_txt" and state.get("step") == "ask_name":
+        filename = f"{text}.txt"
 
-            with open(filename, "w") as f:
-                f.write("\n".join(state["numbers"]))
+        with open(filename, "w") as f:
+            f.write("\n".join(state["numbers"]))
 
-            with open(filename, "rb") as f:
-                bot.send_document(
-                    message.chat.id,
-                    f,
-                    caption="✅ Extracted Numbers"
-                    )
+        with open(filename, "rb") as f:
+            bot.send_document(
+                message.chat.id,
+                f,
+                caption="✅ Extracted Numbers"
+            )
 
-                os.remove(filename)
+        os.remove(filename)
 
-                bot.send_message(message.chat.id, "✅ Extraction Completed Successfully! 🎉")
-                user_state.pop(user_id, None)
-                return
-    
-    
+        bot.send_message(message.chat.id, "✅ Extraction Completed Successfully! 🎉")
+        user_state.pop(user_id, None)
+        return
 
     # ── MERGE VCF ──────────────────────────────────────────────
     if mode == "merge_vcf":
