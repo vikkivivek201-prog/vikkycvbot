@@ -202,7 +202,8 @@ def help_cmd(message):
 1. Send TXT/XLSX or raw numbers
 2. Bot auto-detects numbers
 3. Wait for processing
-4. Download VCF file</blockquote>
+4. Download VCF file  
+</blockquote>
 
 <blockquote>━━━━━━━━━━━━━━━━━━━━━━━
 📄 2. VCF → TEXT (EXTRACT CONTACTS)
@@ -212,7 +213,8 @@ def help_cmd(message):
 1. Upload VCF file
 2. Bot scans contacts
 3. TXT file generated
-4. Download output</blockquote>
+4. Download output  
+</blockquote>
 
 <blockquote>━━━━━━━━━━━━━━━━━━━━━━━
 🔗 3. MERGE VCF
@@ -221,7 +223,8 @@ def help_cmd(message):
 🔹 Steps:
 1. Send multiple VCF files
 2. Bot collects them
-3. Use /done → merged file ready</blockquote>
+3. Use /done → merged file ready  
+</blockquote>
 
 <blockquote>━━━━━━━━━━━━━━━━━━━━━━━
 ✂️ 4. SPLIT VCF
@@ -230,7 +233,8 @@ def help_cmd(message):
 🔹 Steps:
 1. Upload large VCF
 2. Bot splits automatically
-3. Download all parts</blockquote>
+3. Download all parts  
+</blockquote>
 
 <blockquote>━━━━━━━━━━━━━━━━━━━━━━━
 🧩 5. VCF EDITOR
@@ -239,7 +243,8 @@ def help_cmd(message):
 🔹 Steps:
 1. Upload VCF
 2. Set name/prefix
-3. Get edited file</blockquote>
+3. Get edited file  
+</blockquote>
 
 <blockquote>━━━━━━━━━━━━━━━━━━━━━━━
 👑 6. ADMIN / NAVY MODE
@@ -248,7 +253,8 @@ def help_cmd(message):
 🔹 Steps:
 1. Upload files
 2. Select mode
-3. Bot creates segmented VCF</blockquote>
+3. Bot creates segmented VCF  
+</blockquote>
 
 <blockquote>━━━━━━━━━━━━━━━━━━━━━━━
 📑 7. MERGE TEXT FILES
@@ -257,7 +263,8 @@ def help_cmd(message):
 🔹 Steps:
 1. Send TXT files
 2. Bot merges all numbers
-3. Final TXT generated</blockquote>
+3. Final TXT generated  
+</blockquote>
 
 <blockquote>━━━━━━━━━━━━━━━━━━━━━━━
 🔍 8. VCF SCANNER
@@ -266,7 +273,8 @@ def help_cmd(message):
 🔹 Steps:
 1. Upload VCF
 2. Bot shows names + numbers
-3. Preview before processing</blockquote>
+3. Preview before processing  
+</blockquote>
 
 <blockquote>━━━━━━━━━━━━━━━━━━━━━━━
 💡 PRO TIPS
@@ -275,7 +283,8 @@ def help_cmd(message):
 ✔ Use /cancel to stop process
 ✔ Avoid corrupted files
 
-━━━━━━━━━━━━━━━━━━━━━━━</blockquote>
+━━━━━━━━━━━━━━━━━━━━━━━  
+</blockquote>
 👨‍💻 Owner: @Vikky_IND
 """
     )
