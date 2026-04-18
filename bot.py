@@ -7,20 +7,21 @@ import telebot
 from telebot import types
 from threading import Lock
 
+# GLOBALS
 msg_lock = Lock()
-
-# 🔹 Flask app
+bot = telebot.TeleBot(TOKEN)
 web = Flask(__name__)
+user_state = {}
+
 
 @web.route('/')
 def home():
     return "Bot is running!"
 
-# 🔹 Config
+# 🔹 CONFIGURATION
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 
-bot = telebot.TeleBot(TOKEN)
 
 # ============================================================
 # 🔹 MAIN MENU — Colored Buttons + Animated Emoji
@@ -66,6 +67,44 @@ def main_menu():
     return kb
 
 # ============================================================
+# 🔹 User State
+# ============================================================
+def set_mode(user_id, mode):
+	user_state[user_id] = {
+		"mode": mode,
+		"step": None,
+		"data": {}
+	}
+
+# ============================================================
+# 🔹 Load Users
+# ============================================================
+def load_users():
+    try:
+        with open("users.json", "r") as f:
+            return json.load(f)
+    except:
+        return {}
+
+# ============================================================
+# 🔹 Save Users
+# ============================================================
+def save_users(data):
+    with open("users.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+# ============================================================
+# 🔹 Progress Bar
+# ============================================================
+def progress_bar(current, total):
+    percent = int((current / total) * 100) if total else 0
+    filled = int(percent / 5)
+    bar = "█" * filled + "░" * (20 - filled)
+    return f"{bar} {percent}%"
+
+
+#        COMMANDS HANDLERS
+# ============================================================
 # 🔹 /start
 # ============================================================
 @bot.message_handler(commands=["start"])
@@ -85,6 +124,28 @@ def start(message):
         daemon=True
     ).start()
 
+
+# ============================================================
+# 🔹 /cancel
+# ============================================================
+@bot.message_handler(commands=["cancel"])
+def cancel_cmd(message):
+    user_id = message.from_user.id
+
+    # reset state
+    if user_id in user_state:
+        user_state.pop(user_id)
+
+    bot.send_message(
+        message.chat.id,
+        "❌ Process cancelled successfully.\n🔄 You can start again from menu.",
+        reply_markup=main_menu()   # ⭐ THIS IS THE FIX
+    )
+
+
+# ============================================================
+# 🔹 HACKER TYPE LOADING
+# ============================================================
 def run_animation(uid, name, username, user_id):
     frames = [
         "[>_] INITIALIZING SYSTEM...\nEstablishing Secure Connection...\n[█░░░░░░░░░] 10%",
@@ -146,40 +207,8 @@ def run_animation(uid, name, username, user_id):
 
 
 # ============================================================
-# 🔹 User State
+# 🔹 /help
 # ============================================================
-user_state = {}
-def set_mode(user_id, mode):
-	user_state[user_id] = {
-		"mode": mode,
-		"step": None,
-		"data": {}
-	}
-
-# ============================================================
-# 🔹 Load / Save Users
-# ============================================================
-def load_users():
-    try:
-        with open("users.json", "r") as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_users(data):
-    with open("users.json", "w") as f:
-        json.dump(data, f, indent=4)
-
-
-# ============================================================
-# 🔹 Progress Bar
-# ============================================================
-def progress_bar(current, total):
-    percent = int((current / total) * 100) if total else 0
-    filled = int(percent / 5)
-    bar = "█" * filled + "░" * (20 - filled)
-    return f"{bar} {percent}%"
-
 @bot.message_handler(commands=["help"])
 def help_cmd(message):
     bot.send_message(
@@ -227,19 +256,51 @@ Here is a quick guide to help you use all premium features efficiently:
         parse_mode="HTML"
     )
 
-@bot.message_handler(commands=["cancel"])
-def cancel_cmd(message):
-    user_id = message.from_user.id
 
-    # reset state
-    if user_id in user_state:
-        user_state.pop(user_id)
+#           START FUNCTIONS
+# ============================================================
+# 🔹 START TXT TO VCF
+# ============================================================
+def start_txt_to_vcf(message, user_id):
+    user_state[user_id] = {
+        "mode": "txt_to_vcf",
+        "step": "collecting",
+        "numbers": set(),   # 🔥 set for no duplicate
+        "msg_id": None,
+        "last_update": 0
+    }
 
     bot.send_message(
         message.chat.id,
-        "❌ Process cancelled successfully.\n🔄 You can start again from menu.",
-        reply_markup=main_menu()   # ⭐ THIS IS THE FIX
+        "📥 Send Contacts\n━━━━━━━━━━━━━━━\n📂 Numbers / .txt / .xlsx\n\n✅ Finish Type → /done"
     )
+
+# ============================================================
+# 🔹 START VCF TO TXT
+# ============================================================
+def start_vcf_to_txt(message, user_id):
+    user_state[user_id] = {
+        "mode": "vcf_to_txt",
+        "numbers": [],
+        "files": 0,
+        "msg_id": None
+    }
+
+    bot.send_message(
+        message.chat.id,
+        "📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send one or multiple .vcf files\n\n✅ Finish Type → /done"
+    )
+
+# ============================================================
+# 🔹 START MERGE VCF
+# ============================================================
+def start_merge_vcf(message, user_id):
+    user_state[user_id] = {
+        "mode": "merge_vcf",
+        "step": "ask_filename"
+    }
+    bot.send_message(message.chat.id, "📝 *Enter output VCF file name:*", parse_mode="Markdown")
+
 
 # ============================================================
 # 🔹 TEXT HANDLER (FIXED)
@@ -257,11 +318,11 @@ def handle_text(message):
         start_txt_to_vcf(message, user_id)
         return
 
-    if text == "VCF to Text" or text == "VCF to Text":
+    if text == "VCF to Text":
         start_vcf_to_txt(message, user_id)
         return
 
-    if text == "Admin/Navy VCF" or text == "Manual VCF":
+    if text == "Admin/Navy VCF":
         bot.send_message(message.chat.id, "✏️ Send contacts manually to create VCF.")
         return
 
@@ -341,7 +402,6 @@ def handle_text(message):
             "📝 Enter the name for your .txt file:\nExample: ExtractedList"
         )
         return
-
 
 # ── TEXT TO VCF ────────────────────────────────────────────
     if mode == "txt_to_vcf":
@@ -440,66 +500,19 @@ def handle_text(message):
 
 
 
-def generate_vcf_files(message, state, user_id, limit):
-    numbers = state["numbers"]
-
-    bot.send_message(
-        message.chat.id,
-        f"🚀 Generating VCF Files\n━━━━━━━━━━━━━━━\n"
-        f"📊 Total Contacts: {len(numbers)}\n⚡ Status: Processing..."
-    )
-
-    chunks = [numbers[i:i+limit] for i in range(0, len(numbers), limit)]
-    contact_counter = state["contact_start"]
-
-    for idx, chunk in enumerate(chunks):
-        vcf_data = ""
-        for num in chunk:
-            vcf_data += f"BEGIN:VCARD\nVERSION:3.0\nFN:{state['prefix']} {contact_counter}\nTEL;TYPE=CELL:{num}\nEND:VCARD\n"
-            contact_counter += 1
-
-        filename = f"{state['file_name']}{state['vcf_start'] + idx}.vcf"
-
-        with open(filename, "w") as f:
-            f.write(vcf_data)
-
-        with open(filename, "rb") as f:
-            bot.send_document(message.chat.id, f)
-
-        os.remove(filename)
-
-    bot.send_message(message.chat.id, "✅ VCF Generation Completed 🎉")
-    user_state.pop(user_id, None)
-
-
-# ============================================================
-# 🔹 START TXT TO VCF
-# ============================================================
-def start_txt_to_vcf(message, user_id):
-    user_state[user_id] = {
-        "mode": "txt_to_vcf",
-        "step": "collecting",
-        "numbers": [],
-        "msg_id": None
-    }
-
-    bot.send_message(
-        message.chat.id,
-        "📥 Send Contacts\n━━━━━━━━━━━━━━━\n📂 Numbers / .txt / .xlsx\n\n✅ Finish Type → /done"
-    )
-
-
 # ============================================================
 # 🔹 HANDLE TEXT (TXT TO VCF FLOW)
 # ============================================================
 def handle_txt_input(message, state):
     text = message.text.strip()
 
-    # 👉 DONE CLICK
+    # 👉 DONE
     if text == "/done":
         if not state["numbers"]:
             bot.send_message(message.chat.id, "❌ No contacts added yet.")
             return
+
+        state["numbers"] = list(state["numbers"])  # convert set → list
 
         final_msg = (
             f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
@@ -510,11 +523,7 @@ def handle_txt_input(message, state):
         with msg_lock:
             if state.get("msg_id"):
                 try:
-                    bot.edit_message_text(
-                        final_msg,
-                        message.chat.id,
-                        state["msg_id"]
-                    )
+                    bot.edit_message_text(final_msg, message.chat.id, state["msg_id"])
                 except:
                     pass
 
@@ -526,36 +535,24 @@ def handle_txt_input(message, state):
         )
         return
 
-
-    with msg_lock:
-        if not state.get("msg_id"):
-            msg = bot.send_message(message.chat.id, msg_text)
-            state["msg_id"] = msg.message_id
-        else:
-            try:
-                bot.edit_message_text(
-                    msg_text,
-                    message.chat.id,
-                    state["msg_id"]
-                )
-            except:
-                msg = bot.send_message(message.chat.id, msg_text)
-                state["msg_id"] = msg.message_id
-
-    # 👉 NUMBER INPUT
+    # 👉 NUMBER PARSE (FAST)
     added = 0
-    lines = text.split()
-
-    for n in lines:
+    for n in text.split():
         n = n.replace("+", "").replace("-", "").replace(" ", "")
         if n.isdigit() and len(n) >= 8:
-            state["numbers"].append(n)
-            added += 1
+            if n not in state["numbers"]:
+                state["numbers"].add(n)
+                added += 1
 
     if added == 0:
         return
 
-    # 📌 message text (single source)
+    # 👉 SMART UI UPDATE (anti-lag)
+    now = time.time()
+    if now - state.get("last_update", 0) < 1:
+        return
+    state["last_update"] = now
+
     msg_text = (
         f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
         f"📊 Total Added: {len(state['numbers'])}\n"
@@ -564,24 +561,16 @@ def handle_txt_input(message, state):
         f"✅ Finish Type → /done"
     )
 
-    # 👉 FIRST TIME MESSAGE CREATE
-    if not state.get("msg_id"):
-        msg = bot.send_message(message.chat.id, msg_text)
-        state["msg_id"] = msg.message_id
-
-    # 👉 UPDATE SAME MESSAGE
-    else:
+    with msg_lock:
         try:
-            bot.edit_message_text(
-                msg_text,
-                message.chat.id,
-                state["msg_id"]
-            )
+            if state.get("msg_id"):
+                bot.edit_message_text(msg_text, message.chat.id, state["msg_id"])
+            else:
+                msg = bot.send_message(message.chat.id, msg_text)
+                state["msg_id"] = msg.message_id
         except:
-            # fallback (important for 600+ load)
             msg = bot.send_message(message.chat.id, msg_text)
             state["msg_id"] = msg.message_id
-
 
 # ============================================================
 # 🔹 STEP FLOW (AFTER /done)
@@ -638,6 +627,7 @@ def handle_txt_steps(message, state, user_id):
 
     generate_vcf_files_clean(message, state, user_id, limit)
 
+
 # ============================================================
 # 🔹 CLEAN VCF GENERATOR (NO BUG)
 # ============================================================
@@ -689,27 +679,8 @@ def generate_vcf_files_clean(message, state, user_id, limit):
     bot.send_message(message.chat.id, "✅ VCF Generation Completed Successfully! 🎉")
     user_state.pop(user_id, None)
 
-def start_vcf_to_txt(message, user_id):
-    user_state[user_id] = {
-        "mode": "vcf_to_txt",
-        "numbers": [],
-        "files": 0,
-        "msg_id": None
-    }
-
-    bot.send_message(
-        message.chat.id,
-        "📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send one or multiple .vcf files\n\n✅ Finish Type → /done"
-    )
 
 
-
-def start_merge_vcf(message, user_id):
-    user_state[user_id] = {
-        "mode": "merge_vcf",
-        "step": "ask_filename"
-    }
-    bot.send_message(message.chat.id, "📝 *Enter output VCF file name:*", parse_mode="Markdown")
 
 # ============================================================
 # 🔹 Animate Progress
@@ -766,6 +737,7 @@ def process_vcf_file(path, state):
     except:
         pass
 
+
 # ============================================================
 # 🔹 FILE HANDLER
 # ============================================================
@@ -803,68 +775,45 @@ def handle_files(message):
         os.remove(path)
 
     # ============================================================
-    # TXT → VCF (XLSX FILE)
+    # TXT → VCF ( BY TXT )
     # ============================================================
-    elif filename.endswith(".xlsx") and mode == "txt_to_vcf":
-        try:
-            from openpyxl import load_workbook
+    if filename.endswith(".txt") and mode == "txt_to_vcf":
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            numbers = set()  # 🔥 no duplicates
 
-            wb = load_workbook(path, read_only=True)
-            sheet = wb.active
+            for line in f:
+                n = ''.join(filter(str.isdigit, line))
 
-            for row in sheet.iter_rows(values_only=True):
-                for cell in row:
-                    if cell:
-                        n = str(cell).strip().replace("+", "").replace("-", "").replace(" ", "")
-                        if n.isdigit() and len(n) >= 8:
-                            state["numbers"].append(n)
+                if len(n) >= 8:
+                    numbers.add(n)
 
-            wb.close()
-
-        except Exception as e:
-            bot.send_message(message.chat.id, f"❌ XLSX Error: {e}")
-            os.remove(path)
-            return
+        # 🔥 merge with existing (no duplicate)
+            state["numbers"] = list(set(state.get("numbers", [])) | numbers)
 
         os.remove(path)
 
     # ============================================================
-    # AFTER ADD → UPDATE SAME MESSAGE
+    # TXT → VCF ( BY XLSX )
     # ============================================================
-    if mode == "text_to_vcf" and (filename.endswith(".txt") or filename.endswith(".xlsx")):
+    if filename.endswith(".xlsx") and mode == "txt_to_vcf":
+        import openpyxl
 
-        with msg_lock:
-            if not state.get("msg_id"):
-                try:
-                    msg = bot.send_message(
-                        message.chat.id,
-                        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-                        f"📊 Total Added: {len(state['numbers'])}\n"
-                        f"⏳ Status: Processing...\n\n"
-                        f"📂 Keep sending files/numbers\n"
-                        f"✅ Finish Type → /done"
-                    )
-                    state["msg_id"] = msg.message_id
-                except:
-                    pass
-            else:
-                try:
-                    bot.edit_message_text(
-                        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-                        f"📊 Total Added: {len(state['numbers'])}\n"
-                        f"⏳ Status: Processing...\n\n"
-                        f"📂 Keep sending files/numbers\n"
-                        f"✅ Finish Type → /done",
-                        message.chat.id,
-                        state["msg_id"]
-                    )
-                except:
-                    pass
+        wb = openpyxl.load_workbook(path, read_only=True)
+        sheet = wb.active
 
-    # ============================================================
-    # VCF → TXT
-    # ============================================================
-    
+        numbers = set()
+
+        for row in sheet.iter_rows(values_only=True):
+            for cell in row:
+                if cell:
+                    n = ''.join(filter(str.isdigit, str(cell)))
+
+                    if len(n) >= 8:
+                        numbers.add(n)
+
+        state["numbers"] = list(set(state.get("numbers", [])) | numbers)
+
+        os.remove(path)
 
     # ============================================================
     # MERGE VCF
