@@ -850,19 +850,22 @@ def handle_files(message):
     # ============================================================
     # AFTER ADD → UPDATE SAME MESSAGE
     # ============================================================
-    if mode == "txt_to_vcf" and (filename.endswith(".txt") or filename.endswith(".xlsx")):
+    if mode == "text_to_vcf" and (filename.endswith(".txt") or filename.endswith(".xlsx")):
 
         with msg_lock:
             if not state.get("msg_id"):
-                msg = bot.send_message(
-                    message.chat.id,
-                    f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-                    f"📊 Total Added: {len(state['numbers'])}\n"
-                    f"⏳ Status: Processing...\n\n"
-                    f"📂 Keep sending files/numbers\n"
-                    f"✅ Finish Type → /done"
-                )
-                state["msg_id"] = msg.message_id
+                try:
+                    msg = bot.send_message(
+                        message.chat.id,
+                        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
+                        f"📊 Total Added: {len(state['numbers'])}\n"
+                        f"⏳ Status: Processing...\n\n"
+                        f"📂 Keep sending files/numbers\n"
+                        f"✅ Finish Type → /done"
+                    )
+                    state["msg_id"] = msg.message_id
+                except:
+                    pass
             else:
                 try:
                     bot.edit_message_text(
@@ -874,8 +877,8 @@ def handle_files(message):
                         message.chat.id,
                         state["msg_id"]
                     )
-            except:
-                pass
+                except:
+                    pass
 
     # ============================================================
     # VCF → TXT
