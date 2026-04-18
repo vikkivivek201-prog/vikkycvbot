@@ -503,16 +503,17 @@ def handle_txt_input(message, state):
 
         # ✅ EDIT SAME MESSAGE
         with msg_lock:
-            if not state.get("msg_id"):
-                msg = bot.send_message(
-                    message.chat.id,
-                    f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-                    f"📊 Total Added: {len(state['numbers'])}\n"
-                    f"⏳ Status: Processing...\n\n"
-                    f"📂 Keep sending numbers\n"
-                    f"✅ Finish Type → /done"
-                )
-                state["msg_id"] = msg.message_id
+            try:
+                if not state.get("msg_id"):
+                    msg = bot.send_message(
+                        message.chat.id,
+                        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
+                        f"📊 Total Added: {len(state['numbers'])}\n"
+                        f"⏳ Status: Processing...\n\n"
+                        f"📂 Keep sending numbers\n"
+                        f"✅ Finish Type → /done"
+                    )
+                    state["msg_id"] = msg.message_id
             except:
                 pass
 
@@ -823,22 +824,20 @@ def handle_files(message):
                     f"📂 Keep sending files/numbers\n"
                     f"✅ Finish Type → /done"
                 )
-        state["msg_id"] = msg.message_id
-        else:
-            try:
-                bot.edit_message_text(
-                    f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-                    f"📊 Total Added: {len(state['numbers'])}\n"
-                    f"⏳ Status: Processing...\n\n"
-                    f"📂 Keep sending files/numbers\n"
-                    f"✅ Finish Type → /done",
-                    message.chat.id,
-                    state["msg_id"]
-                )
-            except:
-                pass
-
-        return
+                state["msg_id"] = msg.message_id
+            else:
+                try:
+                    bot.edit_message_text(
+                        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
+                        f"📊 Total Added: {len(state['numbers'])}\n"
+                        f"⏳ Status: Processing...\n\n"
+                        f"📂 Keep sending files/numbers\n"
+                        f"✅ Finish Type → /done",
+                        message.chat.id,
+                        state["msg_id"]
+                    )
+                except:
+                    pass
 
     # ============================================================
     # VCF → TXT
