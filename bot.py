@@ -280,6 +280,17 @@ def help_cmd(message):
 """
     )
 
+@bot.message_handler(commands=["cancel"])
+def cancel_cmd(message):
+    user_id = message.from_user.id
+
+    if user_id in user_state:
+        user_state.pop(user_id)
+
+    bot.send_message(
+        message.chat.id,
+        "❌ Process cancelled successfully.\n🔄 You can start again from menu."
+    )
 
 # ============================================================
 # 🔹 TEXT HANDLER (FIXED)
