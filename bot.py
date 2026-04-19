@@ -519,15 +519,20 @@ def update_vcf_progress(message, state):
     last_count = state.get("last_count", 0)
     last_time = state.get("last_time", now)
 
-    # 🔥 REAL SPEED
-    time_diff = now - last_time if now - last_time > 0 else 1
-    speed = int((total_contacts - last_count) / time_diff)
+    # 🔥 REAL SPEED CALCULATION
+    time_diff = now - last_time
+    if time_diff <= 0:
+        speed = 0
+    else:
+        speed = int((total_contacts - last_count) / time_diff)
 
-    state["last_count"] = total_contacts
-    state["last_time"] = now
+    if speed < 0:
+        speed = 0
 
-    # 🔥 SMART PROGRESS BAR
-    percent = min(int((total_contacts / (total_contacts + 100)) * 100), 100)
+    # 🔥 SMART PROGRESS (AUTO RUNNING TYPE)
+    progress_base = total_contacts + (speed * 2 if speed > 0 else 50)
+    percent = min(int((total_contacts / progress_base) * 100), 100)
+
     filled = int(percent / 5)
     bar = "█" * filled + "░" * (20 - filled)
 
@@ -832,10 +837,13 @@ def handle_files(message):
                     if num.isdigit() and len(num) >= 8:
                         state["numbers"].append(num)
 
-                if i > 0 and i % 200 == 0:
+                # 🔥 UPDATE FREQUENTLY (SMOOTH)
+                if i % 50 == 0:
                     update_vcf_progress(message, state)
 
         os.remove(path)
+        # 🔥 FORCE FINAL 100%
+        state["last_count"] = len(state["numbers"])
 
         update_vcf_progress(message, state)
 
