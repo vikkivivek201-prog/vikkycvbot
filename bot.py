@@ -295,15 +295,14 @@ def start_txt_to_vcf(message):
         "last_update": 0
     }
 
-    # ✅ ONLY instruction message (NO msg_id)
-    msg = bot.send_message(
+    bot.send_message(
         message.chat.id,
         "📥 Send Contacts\n━━━━━━━━━━━━━━━\n"
         "📂 Numbers / .txt / .xlsx\n\n"
         "✅ Finish Type → /done"
-        )
+    )
 
-user_states[uid]["msg_id"] = msg.message_id
+    user_states[uid]["msg_id"] = msg.message_id
 
 # ============================================================
 # 🔹 START VCF TO TXT
