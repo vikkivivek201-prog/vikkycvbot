@@ -513,19 +513,23 @@ def update_progress_message(message, state):
         f"✅ Finish Type → /done"
     )
 
-    if not state.get("msg_id"):
-        msg = bot.send_message(message.chat.id, msg_text)
-        state["msg_id"] = msg.message_id
-    else:
-        try:
-            bot.edit_message_text(
-                msg_text,
-                message.chat.id,
-                state["msg_id"]
-            )
-        except:
+    with msg_lock:  # 🔴 LOCK START
+
+        if not state.get("msg_id"):
             msg = bot.send_message(message.chat.id, msg_text)
             state["msg_id"] = msg.message_id
+
+        else:
+            try:
+                bot.edit_message_text(
+                    msg_text,
+                    message.chat.id,
+                    state["msg_id"]
+                )
+            except:
+                # fallback (rare case)
+                msg = bot.send_message(message.chat.id, msg_text)
+                state["msg_id"] = msg.message_id
 
 
 # ============================================================
