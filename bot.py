@@ -964,7 +964,7 @@ def handle_manual_text(message, state, user_id):
         import re
         added = 0
         for n in re.findall(r'\d{5,}', text):
-            state["numbers"].append(n)
+            state["numbers"].add(n)
             added += 1
 
         # ❗ अगर कुछ add नहीं हुआ तो return
