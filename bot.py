@@ -806,12 +806,6 @@ def handle_files(message):
         bot.send_message(message.chat.id, "⚠️ Limit reached (200k contacts)")
         return
 
-    # =========================================================
-    # 🔹 LIVE UPDATE MESSAGE (MAIN FIX 🚀)
-    now = time.time()
-    if now - state.get("last_update", 0) < 0.2:
-        return
-    state["last_update"] = now
     msg_text = (
         "📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
         f"📊 Total Added: {len(state['numbers'])}\n"
