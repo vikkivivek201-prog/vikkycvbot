@@ -21,6 +21,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 
 bot = telebot.TeleBot(TOKEN)
+user_state = {}
 
 # ============================================================
 # 🔹 MAIN MENU — Colored Buttons + Animated Emoji
@@ -64,6 +65,7 @@ def main_menu():
     )
     
     return kb
+
 
 # ============================================================
 # 🔹 /start
@@ -148,7 +150,6 @@ def run_animation(uid, name, username, user_id):
 # ============================================================
 # 🔹 User State
 # ============================================================
-user_state = {}
 def set_mode(user_id, mode):
 	user_state[user_id] = {
 		"mode": mode,
@@ -323,7 +324,7 @@ def handle_text(message):
         bot.send_message(message.chat.id, "⚠️ Please select an option from menu first.", reply_markup=main_menu())
         return
 
-# ── VCF TO TXT DONE FIX ────────────────────────────────────
+# ── VCF TO TXT DONE ────────────────────────────────────
     if mode == "vcf_to_txt" and text == "/done":
 
         if not state["numbers"]:
@@ -331,20 +332,15 @@ def handle_text(message):
             return
 
         final_text = (
-            f"📄 Final Result\n━━━━━━━━━━━━━━━\n"
+            f"📄 Extracted Numbers\n━━━━━━━━━━━━━━━\n"
             f"📁 Files Processed: {state.get('files', 0)}\n"
-            f"📊 Total Extracted: {len(state['numbers'])}\n"
+            f"📊 Final Extracted: {len(state['numbers'])}\n"
             f"✅ Finished!"
         )
 
-    # ✅ SAME MESSAGE EDIT
         if state.get("msg_id"):
             try:
-                bot.edit_message_text(
-                    final_text,
-                    message.chat.id,
-                    state["msg_id"]
-                )
+                bot.edit_message_text(final_text, message.chat.id, state["msg_id"])
             except:
                 pass
 
@@ -446,9 +442,6 @@ def handle_text(message):
             return
 
 
-
-
-
 # ============================================================
 # 🔹 START TXT TO VCF
 # ============================================================
@@ -466,7 +459,26 @@ def start_txt_to_vcf(message, user_id):
         "📥 Send Contacts\n━━━━━━━━━━━━━━━\n📂 Numbers / .txt / .xlsx\n\n✅ Finish Type → /done"
     )
 
+# ============================================================
+# 🔹 START VCF TO TXT
+# ============================================================
+def start_vcf_to_txt(message, user_id):
+    user_state[user_id] = {
+        "mode": "vcf_to_txt",
+        "numbers": [],
+        "files": 0,
+        "msg_id": None,
+        "cancelled": False
+    }
 
+    bot.send_message(
+        message.chat.id,
+        "📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send one or multiple .vcf files\n\n✅ Finish Type → /done"
+    )
+
+# ============================================================
+# 🔹 UPDATE PROGRESS MESSAGE FOR TXT TO VCF
+# ============================================================
 def update_progress_message(message, state):
     msg_text = (
         f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
@@ -494,6 +506,28 @@ def update_progress_message(message, state):
                 msg = bot.send_message(message.chat.id, msg_text)
                 state["msg_id"] = msg.message_id
 
+# ============================================================
+# 🔹 UPDATE PROGRESS MESSAGE FOR VCF TO TXT
+# ============================================================
+def update_vcf_progress(message, state):
+    msg_text = (
+        f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n"
+        f"📁 Files Uploaded: {state['files']}\n"
+        f"📊 Extracted: {len(state['numbers'])}\n"
+        f"⏳ Status: Scanning...\n\n"
+        f"📂 Keep sending files\n"
+        f"✅ Finish Type → /done"
+    )
+
+    with msg_lock:
+        if not state.get("msg_id"):
+            msg = bot.send_message(message.chat.id, msg_text)
+            state["msg_id"] = msg.message_id
+        else:
+            try:
+                bot.edit_message_text(msg_text, message.chat.id, state["msg_id"])
+            except:
+                pass
 
 # ============================================================
 # 🔹 HANDLE TEXT (TXT TO VCF FLOW)
@@ -645,20 +679,6 @@ def generate_vcf_files_clean(message, state, user_id, limit):
     bot.send_message(message.chat.id, "✅ VCF Generation Completed Successfully! 🎉")
     user_state.pop(user_id, None)
 
-def start_vcf_to_txt(message, user_id):
-    user_state[user_id] = {
-        "mode": "vcf_to_txt",
-        "numbers": [],
-        "files": 0,
-        "msg_id": None
-    }
-
-    bot.send_message(
-        message.chat.id,
-        "📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send one or multiple .vcf files\n\n✅ Finish Type → /done"
-    )
-
-
 
 def start_merge_vcf(message, user_id):
     user_state[user_id] = {
@@ -776,7 +796,22 @@ def handle_files(message):
         update_progress_message(message, state)
         return
 
-    # बाकी code नीचे चलता रहेगा
+    # ===== VCF TO TXT =====
+    elif filename.endswith(".vcf") and mode == "vcf_to_txt":
+        state["files"] += 1
+
+        with open(path, encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                if "TEL" in line.upper():
+                    num = line.split(":")[-1].strip()
+                    num = num.replace(" ", "").replace("-", "").replace("+", "")
+                    if num.isdigit() and len(num) >= 8:
+                        state["numbers"].append(num)
+
+        os.remove(path)
+
+        update_vcf_progress(message, state)
+        return
 
 
     # ============================================================
