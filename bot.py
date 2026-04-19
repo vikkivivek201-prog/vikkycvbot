@@ -972,7 +972,13 @@ def handle_manual_text(message, state, user_id):
         if added == 0:
             return
 
-        # ✅ PROGRESS MESSAGE
+        # ❗ THROTTLE
+        now = time.time()
+        if state.get("last_update") and now - state["last_update"] < 0.5:
+            return
+        state["last_update"] = now
+
+# ✅ PROGRESS MESSAGE
         msg_text = (
             "📄 Collecting Numbers\n"
             "━━━━━━━━━━━━━━━\n"
@@ -982,19 +988,17 @@ def handle_manual_text(message, state, user_id):
             "✅ Finish Type → /done"
         )
 
-        # ✅ FIRST TIME → NEW MESSAGE
-        if not state.get("msg_id"):
-            msg = bot.send_message(message.chat.id, msg_text)
-            state["msg_id"] = msg.message_id
-
-        # ✅ NEXT TIME → EDIT SAME MESSAGE
-        else:
-            try:
-                bot.edit_message_text(msg_text, message.chat.id, state["msg_id"])
-            except:
-                pass
-
-        return
+# 🔒 LOCK
+        with msg_lock:
+            if not state.get("msg_id"):
+                msg = bot.send_message(message.chat.id, msg_text)
+                state["msg_id"] = msg.message_id
+            else:
+                try:
+                    bot.edit_message_text(msg_text, message.chat.id, state["msg_id"])
+                except:
+                    msg = bot.send_message(message.chat.id, msg_text)
+                    state["msg_id"] = msg.message_id
 
     # STEP 2 → FILE NAME
     if state["step"] == "ask_name":
