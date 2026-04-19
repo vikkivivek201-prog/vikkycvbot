@@ -839,7 +839,6 @@ def handle_files(message):
                 os.remove(path)
 
                 update_vcf_progress(message, state)
-                return
 
 
     # ============================================================
