@@ -826,20 +826,18 @@ def handle_files(message):
         with open(path, encoding="utf-8", errors="ignore") as f:
             for i, line in enumerate(f):
 
-        # 🔥 LIVE UPDATE (every 200 lines)
-                if i % 200 == 0:
-                    update_vcf_progress(message, state)
-
                 if "TEL" in line.upper():
                     num = line.split(":")[-1].strip()
                     num = num.replace(" ", "").replace("-", "").replace("+", "")
                     if num.isdigit() and len(num) >= 8:
                         state["numbers"].append(num)
 
-                os.remove(path)
+                if i > 0 and i % 200 == 0:
+                    update_vcf_progress(message, state)
 
-                update_vcf_progress(message, state)
+        os.remove(path)
 
+        update_vcf_progress(message, state)
 
     # ============================================================
     # MERGE VCF
