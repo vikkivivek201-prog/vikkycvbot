@@ -281,7 +281,7 @@ def handle_text(message):
         return
 
     if text == "Manual Text":
-        start_admin_navy(message, user_id)
+        start_manual_text(message, user_id)
         return
 
     if text == "Merge VCF":
@@ -504,8 +504,8 @@ def start_admin_navy(message, user_id):
         "✅ Finish Type → /done"
     )
 
-    msg = bot.send_message(message.chat.id, text)
-    user_state[user_id]["msg_id"] = msg.message_id
+    bot.send_message(message.chat.id, text)
+    user_state[user_id]["msg_id"] = None
 
 # ============================================================
 # 🔹 START MANUAL TEXT
