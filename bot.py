@@ -961,10 +961,10 @@ def handle_manual_text(message, state, user_id):
             return
 
         # ✅ ADD NUMBERS
+        import re
         added = 0
-        for n in text.split():
-            n = n.replace("+","").replace("-","").replace(" ","")
-            if n.isdigit() and len(n) >= 5:
+        for n in re.findall(r'\d{5,}', text):
+            if n not in state["numbers"]:
                 state["numbers"].append(n)
                 added += 1
 
