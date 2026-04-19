@@ -972,11 +972,6 @@ def handle_manual_text(message, state, user_id):
         if added == 0:
             return
 
-        # ❗ THROTTLE
-        now = time.time()
-        if state.get("last_update") and now - state["last_update"] < 0.5:
-            return
-        state["last_update"] = now
 
 # ✅ PROGRESS MESSAGE
         msg_text = (
