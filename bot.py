@@ -277,7 +277,7 @@ def handle_text(message):
         return
 
     if text == "Admin/Navy VCF":
-        bot.send_message(message.chat.id, "✏️ Send contacts manually to create VCF.")
+        start_admin_navy(message, user_id)
         return
 
     if text == "Manual Text":
@@ -324,9 +324,12 @@ def handle_text(message):
         bot.send_message(message.chat.id, "⚠️ Please select an option from menu first.", reply_markup=main_menu())
         return
 
+    if mode == "admin_navy":
+        handle_admin_navy(message, state, user_id)
+        return
+
 # ── VCF TO TXT DONE ────────────────────────────────────
     if mode == "vcf_to_txt" and text == "/done":
-        state["animating"] = False
 
         if not state["numbers"]:
             bot.send_message(message.chat.id, "❌ No data found.")
@@ -469,27 +472,36 @@ def start_vcf_to_txt(message, user_id):
         "numbers": [],
         "files": 0,
         "msg_id": None,
-        "cancelled": False,
-
-        # 👇 ADD THIS
-        "total_lines": 0,
-        "processed_lines": 0,
-        "animating": True
+        "cancelled": False
     }
 
-    msg = bot.send_message(
+    bot.send_message(
         message.chat.id,
-        "<code>Initializing Hacker Terminal...</code>",
-        parse_mode="HTML"
+        "📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send one or multiple .vcf files\n\n✅ Finish Type → /done"
     )
 
-    user_state[user_id]["msg_id"] = msg.message_id
+# ============================================================
+# 🔹 START ADMIN\NAVY VCF
+# ============================================================
+def start_admin_navy(message, user_id):
+    user_state[user_id] = {
+        "mode": "admin_navy",
+        "step": "admin_collect",
+        "admin": [],
+        "navy": [],
+        "msg_id": None
+    }
 
-    threading.Thread(
-        target=animate_progress,
-        args=(message.chat.id, msg.message_id, user_state[user_id]),
-        daemon=True
-    ).start()
+    text = (
+        "👑 Step 1 • Admin Contacts\n"
+        "━━━━━━━━━━━━━━━\n"
+        "📂 Send numbers or files\n\n"
+        "⏭ Skip → skip\n"
+        "✅ Finish Type → /done"
+    )
+
+    msg = bot.send_message(message.chat.id, text)
+    user_state[user_id]["msg_id"] = msg.message_id
 
 # ============================================================
 # 🔹 UPDATE PROGRESS MESSAGE FOR TXT TO VCF
@@ -543,6 +555,32 @@ def update_vcf_progress(message, state):
                 bot.edit_message_text(msg_text, message.chat.id, state["msg_id"])
             except:
                 pass
+
+# ============================================================
+# 🔹 UPDATE MESSAGE FOR ADMIN NAVY VCF
+# ============================================================
+def update_admin_navy_msg(message, state, type_):
+    if type_ == "admin":
+        count = len(state["admin"])
+        title = "👑 Step 1 • Admin Contacts"
+        label = "Admin Added"
+    else:
+        count = len(state["navy"])
+        title = "⚓ Step 2 • Navy Contacts"
+        label = "Navy Added"
+
+    text = (
+        f"{title}\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📊 {label}: {count}\n\n"
+        f"📂 Keep sending files\n"
+        f"✅ Finish → /done"
+    )
+
+    try:
+        bot.edit_message_text(text, message.chat.id, state["msg_id"])
+    except:
+        pass
 
 # ============================================================
 # 🔹 HANDLE TEXT (TXT TO VCF FLOW)
@@ -694,6 +732,165 @@ def generate_vcf_files_clean(message, state, user_id, limit):
     bot.send_message(message.chat.id, "✅ VCF Generation Completed Successfully! 🎉")
     user_state.pop(user_id, None)
 
+# ============================================================
+# 🔹 HANDLE ADMIN NAVY
+# ============================================================
+def handle_admin_navy(message, state, user_id):
+    text = message.text.strip()
+
+    # STEP 1 → ADMIN COLLECT
+    if state["step"] == "admin_collect":
+
+        if text == "/done":
+            final = (
+                "👑 Step 1 • Admin Contacts\n"
+                "━━━━━━━━━━━━━━━\n"
+                f"📊 Final Admin: {len(state['admin'])}\n"
+                "✅ Saved!"
+            )
+            bot.edit_message_text(final, message.chat.id, state["msg_id"])
+
+            # NEXT STEP
+            state["step"] = "navy_collect"
+
+            msg = bot.send_message(
+                message.chat.id,
+                "⚓ Step 2 • Navy Contacts\n"
+                "━━━━━━━━━━━━━━━\n"
+                "📂 Send Navy numbers or files.\n\n"
+                "⏭ Skip → skip\n"
+                "✅ Finish → /done"
+            )
+            state["msg_id"] = msg.message_id
+            return
+
+        # ADD NUMBERS
+        for n in text.split():
+            n = n.replace("+","").replace("-","").replace(" ","")
+            if n.isdigit():
+                state["admin"].append(n)
+
+        update_admin_navy_msg(message, state, "admin")
+        return
+
+    # STEP 2 → NAVY
+    if state["step"] == "navy_collect":
+
+        if text == "/done":
+            final = (
+                "⚓ Step 2 • Navy Contacts\n"
+                "━━━━━━━━━━━━━━━\n"
+                f"📊 Final Navy: {len(state['navy'])}\n"
+                "✅ Saved!"
+            )
+            bot.edit_message_text(final, message.chat.id, state["msg_id"])
+
+            state["step"] = "ask_admin_name"
+
+            bot.send_message(
+                message.chat.id,
+                "🖋 Step 3 • Admin Name Prefix\n"
+                "━━━━━━━━━━━━━━━\n"
+                "✏️ What should be the name for Admin contacts?\n\n"
+                "Example: Admin Target"
+            )
+            return
+
+        for n in text.split():
+            n = n.replace("+","").replace("-","").replace(" ","")
+            if n.isdigit():
+                state["navy"].append(n)
+
+        update_admin_navy_msg(message, state, "navy")
+        return
+
+    # STEP 3
+    if state["step"] == "ask_admin_name":
+        state["admin_name"] = text
+        state["step"] = "ask_navy_name"
+
+        bot.send_message(
+            message.chat.id,
+            "🖋 Step 4 • Navy Name Prefix\n"
+            "━━━━━━━━━━━━━━━\n"
+            "✏️ Enter the name for Navy contacts.\n\n"
+            "Example: Navy Target"
+        )
+        return
+
+    # STEP 4
+    if state["step"] == "ask_navy_name":
+        state["navy_name"] = text
+        state["step"] = "ask_admin_start"
+
+        bot.send_message(
+            message.chat.id,
+            "🔢 Step 5 • Admin Start Number\n"
+            "━━━━━━━━━━━━━━━\n"
+            "🔢 Send start number for Admin contacts.\n\n"
+            "⏭ Skip → skip (Default: 1)"
+        )
+        return
+
+    # STEP 5
+    if state["step"] == "ask_admin_start":
+        state["admin_start"] = int(text) if text.isdigit() else 1
+        state["step"] = "ask_navy_start"
+
+        bot.send_message(
+            message.chat.id,
+            "🔢 Step 6 • Navy Start Number\n"
+            "━━━━━━━━━━━━━━━\n"
+            "🔢 Send start number for Navy contacts.\n\n"
+            "⏭ Skip → skip (Default: 1)"
+        )
+        return
+
+    # STEP 6
+    if state["step"] == "ask_navy_start":
+        state["navy_start"] = int(text) if text.isdigit() else 1
+        state["step"] = "ask_filename"
+
+        bot.send_message(
+            message.chat.id,
+            "📁 Step 7 • Final VCF Filename\n"
+            "━━━━━━━━━━━━━━━\n"
+            "📝 Enter the name for your generated VCF file.\n\n"
+            "Example: Admin File"
+        )
+        return
+
+    # STEP 7 → GENERATE
+    if state["step"] == "ask_filename":
+        filename = f"{text}.vcf"
+
+        vcf = ""
+
+        i = state["admin_start"]
+        for num in state["admin"]:
+            vcf += f"BEGIN:VCARD\nVERSION:3.0\nFN:{state['admin_name']} {i}\nTEL:{num}\nEND:VCARD\n"
+            i += 1
+
+        j = state["navy_start"]
+        for num in state["navy"]:
+            vcf += f"BEGIN:VCARD\nVERSION:3.0\nFN:{state['navy_name']} {j}\nTEL:{num}\nEND:VCARD\n"
+            j += 1
+
+        with open(filename, "w") as f:
+            f.write(vcf)
+
+        with open(filename, "rb") as f:
+            bot.send_document(
+                message.chat.id,
+                f,
+                caption="✅ Generated VCF"
+            )
+
+        os.remove(filename)
+
+        bot.send_message(message.chat.id, "✅ Generation Completed! 🎉")
+        user_state.pop(user_id, None)
+
 
 def start_merge_vcf(message, user_id):
     user_state[user_id] = {
@@ -702,54 +899,39 @@ def start_merge_vcf(message, user_id):
     }
     bot.send_message(message.chat.id, "📝 *Enter output VCF file name:*", parse_mode="Markdown")
 
-
-def hacker_ui(state):
-    import random  # 👈 yaha bhi daal sakte ho (ya top me global)
-
-    lines = [
-        "decrypting vcf nodes...",
-        "injecting parser...",
-        "bypassing filters...",
-        "reading memory blocks..."
-    ]
-
-    random_line = random.choice(lines)  # 🔥 yaha generate hoga
-
-    percent = int((state["processed_lines"] / max(state["total_lines"], 1)) * 100)
-    filled = int(percent / 5)
-    bar = "█" * filled + "░" * (20 - filled)
-
-    return f"""<code>
-root@vcf-master:~# ./scan_vcf.sh
-
-[+] ACCESS GRANTED
-[+] {random_line}   👈 YE LINE ADD KARO
-
-FILES     : {state.get('files', 0)}
-EXTRACTED : {len(state.get('numbers', []))}
-
-PROGRESS  : {bar} {percent}%
-
-STATUS    : RUNNING...
-</code>"""
-
-
 # ============================================================
 # 🔹 Animate Progress
 # ============================================================
 def animate_progress(chat_id, msg_id, state):
+    last_done = 0
+    last_time = time.time()
+
     while state.get("animating"):
         time.sleep(0.5)
+        total = max(state.get("total_lines", 1), 1)
+        done = state.get("processed_lines", 0)
 
-        text_msg = hacker_ui(state)
+        now = time.time()
+        speed = (done - last_done) / (now - last_time) if (now - last_time) > 0 else 0
+        last_done = done
+        last_time = now
+
+        percent = min(int((done / total) * 100), 100)
+        filled = int(percent / 5)
+        bar = "█" * filled + "░" * (20 - filled)
+
+        text_msg = (
+            f"🚀 *VCF SCANNING*\n"
+            f"━━━━━━━━━━━━━━━\n\n"
+            f"📁 Files: {state.get('files', 0)}\n"
+            f"📊 Extracted: {len(state.get('numbers', []))}\n\n"
+            f"📈 Progress: `{bar} {percent}%`\n\n"
+            f"⚡ Speed: {speed:.0f} lines/sec\n"
+            f"🔄 {done}/{total} lines"
+        )
 
         try:
-            bot.edit_message_text(
-                text_msg,
-                chat_id,
-                msg_id,
-                parse_mode="HTML"
-            )
+            bot.edit_message_text(text_msg, chat_id, msg_id, parse_mode="Markdown")
         except:
             pass
 
@@ -830,12 +1012,17 @@ def handle_files(message):
     elif filename.endswith(".vcf") and mode == "vcf_to_txt":
         state["files"] += 1
 
-        threading.Thread(
-            target=process_vcf_file,
-            args=(path, state),
-            daemon=True
-        ).start()
+        with open(path, encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                if "TEL" in line.upper():
+                    num = line.split(":")[-1].strip()
+                    num = num.replace(" ", "").replace("-", "").replace("+", "")
+                    if num.isdigit() and len(num) >= 8:
+                        state["numbers"].append(num)
 
+        os.remove(path)
+
+        update_vcf_progress(message, state)
         return
 
 
