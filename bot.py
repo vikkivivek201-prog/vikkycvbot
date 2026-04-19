@@ -468,10 +468,10 @@ def start_vcf_to_txt(message, user_id):
         "numbers": [],
         "files": 0,
         "msg_id": None,
-        "cancelled": False
+        "cancelled": False,
         "start_time": time.time(),
         "last_count": 0,
-        "last_time": time.time(),
+        "last_time": time.time()
     }
 
     bot.send_message(
