@@ -743,16 +743,19 @@ def handle_admin_navy(message, state, user_id):
 
         if text == "/done":
             final = (
-                "👑 Step 1 • Admin Contacts\n"
+                "⚓ Step 1 • Admin Contacts\n"
                 "━━━━━━━━━━━━━━━\n"
                 f"📊 Final Admin: {len(state['admin'])}\n"
                 "✅ Saved!"
             )
+
+    # ✅ SAME MESSAGE EDIT
             bot.edit_message_text(final, message.chat.id, state["msg_id"])
 
-            # NEXT STEP
+    # ✅ STEP CHANGE
             state["step"] = "navy_collect"
 
+    # ✅ NEW MESSAGE (NAVY START)
             msg = bot.send_message(
                 message.chat.id,
                 "⚓ Step 2 • Navy Contacts\n"
@@ -761,6 +764,7 @@ def handle_admin_navy(message, state, user_id):
                 "⏭ Skip → skip\n"
                 "✅ Finish → /done"
             )
+
             state["msg_id"] = msg.message_id
             return
 
@@ -783,10 +787,14 @@ def handle_admin_navy(message, state, user_id):
                 f"📊 Final Navy: {len(state['navy'])}\n"
                 "✅ Saved!"
             )
+
+    # ✅ SAME MESSAGE EDIT
             bot.edit_message_text(final, message.chat.id, state["msg_id"])
 
+    # ✅ STEP CHANGE
             state["step"] = "ask_admin_name"
 
+    # ✅ NEXT STEP MESSAGE
             bot.send_message(
                 message.chat.id,
                 "🖋 Step 3 • Admin Name Prefix\n"
