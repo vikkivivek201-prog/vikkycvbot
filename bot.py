@@ -519,7 +519,6 @@ def update_progress_message(message, state):
 def handle_txt_input(message, state):
     text = message.text.strip()
 
-    # 👉 DONE
     if text == "/done":
         if not state["numbers"]:
             bot.send_message(message.chat.id, "❌ No contacts added yet.")
@@ -533,23 +532,15 @@ def handle_txt_input(message, state):
 
         if state.get("msg_id"):
             try:
-                bot.edit_message_text(
-                    final_text,
-                    message.chat.id,
-                    state["msg_id"]
-                )
+                bot.edit_message_text(final_text, message.chat.id, state["msg_id"])
             except:
                 pass
 
         state["step"] = "ask_file_name"
-
-        bot.send_message(
-            message.chat.id,
-            "📝 Enter VCF file name:"
-        )
+        bot.send_message(message.chat.id, "1️⃣ VCF File Name?\n(Example: Brazil)")
         return
 
-    # 👉 NORMAL NUMBER INPUT
+    # 👉 ONLY ONE LOOP
     added = 0
     for n in text.split():
         n = n.replace("+","").replace("-","").replace(" ","")
@@ -559,47 +550,6 @@ def handle_txt_input(message, state):
 
     if added > 0:
         update_progress_message(message, state)
-
-
-    # 👉 NUMBER INPUT
-    added = 0
-    lines = text.split()
-
-    for n in lines:
-        n = n.replace("+", "").replace("-", "").replace(" ", "")
-        if n.isdigit() and len(n) >= 8:
-            state["numbers"].append(n)
-            added += 1
-
-    if added == 0:
-        return
-
-    # 📌 message text (single source)
-    msg_text = (
-        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-        f"📊 Total Added: {len(state['numbers'])}\n"
-        f"⏳ Status: Processing...\n\n"
-        f"📂 Keep sending numbers\n"
-        f"✅ Finish Type → /done"
-    )
-
-    # 👉 FIRST TIME MESSAGE CREATE
-    if not state.get("msg_id"):
-        msg = bot.send_message(message.chat.id, msg_text)
-        state["msg_id"] = msg.message_id
-
-    # 👉 UPDATE SAME MESSAGE
-    else:
-        try:
-            bot.edit_message_text(
-                msg_text,
-                message.chat.id,
-                state["msg_id"]
-            )
-        except:
-            # fallback (important for 600+ load)
-            msg = bot.send_message(message.chat.id, msg_text)
-            state["msg_id"] = msg.message_id
 
 
 # ============================================================
@@ -793,7 +743,6 @@ def handle_files(message):
     user_id = message.from_user.id
     state = user_state.get(user_id)
 
-    
     if not state:
         bot.send_message(message.chat.id, "⚠️ Please select an option from menu first.")
         return
@@ -809,82 +758,36 @@ def handle_files(message):
     with open(path, "wb") as f:
         f.write(downloaded)
 
-    # ============================================================
-    # TXT → VCF (TXT FILE)
-    # ============================================================
+    # ===== TXT =====
     if filename.endswith(".txt") and mode == "txt_to_vcf":
         with open(path) as f:
             for line in f:
-                n = line.strip().replace("+", "").replace("-", "").replace(" ", "")
+                n = line.strip().replace("+","").replace("-","").replace(" ","")
                 if n.isdigit() and len(n) >= 8:
                     state["numbers"].append(n)
-
         os.remove(path)
 
-    # ============================================================
-    # TXT → VCF (XLSX FILE)
-    # ============================================================
+    # ===== XLSX =====
     elif filename.endswith(".xlsx") and mode == "txt_to_vcf":
-        try:
-            from openpyxl import load_workbook
+        from openpyxl import load_workbook
 
-            wb = load_workbook(path, read_only=True)
-            sheet = wb.active
-
-            for row in sheet.iter_rows(values_only=True):
-                for cell in row:
-                    if cell:
-                        n = str(cell).strip().replace("+", "").replace("-", "").replace(" ", "")
-                        if n.isdigit() and len(n) >= 8:
-                            state["numbers"].append(n)
-
-            wb.close()
-
-        except Exception as e:
-            bot.send_message(message.chat.id, f"❌ XLSX Error: {e}")
-            os.remove(path)
-            return
-
+        wb = load_workbook(path, read_only=True)
+        for row in wb.active.iter_rows(values_only=True):
+            for cell in row:
+                if cell:
+                    n = str(cell).strip().replace("+","").replace("-","").replace(" ","")
+                    if n.isdigit() and len(n) >= 8:
+                        state["numbers"].append(n)
+        wb.close()
         os.remove(path)
 
-# ============================================================
-# AFTER ADD → UPDATE SAME MESSAGE
-# ============================================================
+    # ===== 🔥 UPDATE SAME MESSAGE =====
     if mode == "txt_to_vcf" and (filename.endswith(".txt") or filename.endswith(".xlsx")):
         update_progress_message(message, state)
+        return
 
-        with msg_lock:
-            if not state.get("msg_id"):
-                try:
-                    msg = bot.send_message(
-                        message.chat.id,
-                        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-                        f"📊 Total Added: {len(state['numbers'])}\n"
-                        f"⏳ Status: Processing...\n\n"
-                        f"📂 Keep sending files/numbers\n"
-                        f"✅ Finish Type → /done"
-                    )
-                    state["msg_id"] = msg.message_id
-                except:
-                    pass
-            else:
-                try:
-                    bot.edit_message_text(
-                        f"📥 Collecting Contacts\n━━━━━━━━━━━━━━━\n"
-                        f"📊 Total Added: {len(state['numbers'])}\n"
-                        f"⏳ Status: Processing...\n\n"
-                        f"📂 Keep sending files/numbers\n"
-                        f"✅ Finish Type → /done",
-                        message.chat.id,
-                        state["msg_id"]
-                    )
-                except:
-                    pass
+    # बाकी code नीचे चलता रहेगा
 
-    # ============================================================
-    # VCF → TXT
-    # ============================================================
-    
 
     # ============================================================
     # MERGE VCF
