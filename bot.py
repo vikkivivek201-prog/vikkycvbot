@@ -326,6 +326,7 @@ def handle_text(message):
 
 # ── VCF TO TXT DONE ────────────────────────────────────
     if mode == "vcf_to_txt" and text == "/done":
+        state["animating"] = False
 
         if not state["numbers"]:
             bot.send_message(message.chat.id, "❌ No data found.")
@@ -469,15 +470,26 @@ def start_vcf_to_txt(message, user_id):
         "files": 0,
         "msg_id": None,
         "cancelled": False,
-        "start_time": time.time(),
-        "last_count": 0,
-        "last_time": time.time()
+
+        # 👇 ADD THIS
+        "total_lines": 0,
+        "processed_lines": 0,
+        "animating": True
     }
 
-    bot.send_message(
+    msg = bot.send_message(
         message.chat.id,
-        "📤 Upload VCF Files\n━━━━━━━━━━━━━━━\n📁 Send one or multiple .vcf files\n\n✅ Finish Type → /done"
+        "<code>Initializing Hacker Terminal...</code>",
+        parse_mode="HTML"
     )
+
+    user_state[user_id]["msg_id"] = msg.message_id
+
+    threading.Thread(
+        target=animate_progress,
+        args=(message.chat.id, msg.message_id, user_state[user_id]),
+        daemon=True
+    ).start()
 
 # ============================================================
 # 🔹 UPDATE PROGRESS MESSAGE FOR TXT TO VCF
@@ -513,45 +525,11 @@ def update_progress_message(message, state):
 # 🔹 UPDATE PROGRESS MESSAGE FOR VCF TO TXT
 # ============================================================
 def update_vcf_progress(message, state):
-    now = time.time()
-
-    total_contacts = len(state["numbers"])
-    last_count = state.get("last_count", 0)
-    last_time = state.get("last_time", now)
-
-    # 🔥 REAL SPEED CALCULATION
-    time_diff = now - last_time
-    if time_diff <= 0:
-        speed = 0
-    else:
-        speed = (total_contacts - last_count) / (time_diff if time_diff > 0 else 1)
-
-# 🔥 smoothing
-        prev_speed = state.get("speed", 0)
-        speed = int((prev_speed * 0.7) + (speed * 0.3))
-
-        state["speed"] = speed
-
-    if speed < 0:
-        speed = 0
-
-    # 🔥 DYNAMIC PROGRESS
-    if state.get("processing_done"):
-        percent = 100
-    else:
-        progress_base = total_contacts + max(state.get("speed", 1) * 3, 50)
-        percent = min(int((total_contacts / progress_base) * 100), 95)
-
-    filled = int(percent / 5)
-    bar = "█" * filled + "░" * (20 - filled)
-
     msg_text = (
         f"📄 Extracting Numbers\n━━━━━━━━━━━━━━━\n"
         f"📁 Files Uploaded: {state['files']}\n"
-        f"📊 Extracted: {total_contacts}\n\n"
-        f"📈 Progress: {bar} {percent}%\n\n"
-        f"⚡ Speed: {speed} contacts/sec\n"
-        f"🔄 Scanning...\n\n"
+        f"📊 Extracted: {len(state['numbers'])}\n"
+        f"⏳ Status: Scanning...\n\n"
         f"📂 Keep sending files\n"
         f"✅ Finish Type → /done"
     )
@@ -724,39 +702,54 @@ def start_merge_vcf(message, user_id):
     }
     bot.send_message(message.chat.id, "📝 *Enter output VCF file name:*", parse_mode="Markdown")
 
+
+def hacker_ui(state):
+    import random  # 👈 yaha bhi daal sakte ho (ya top me global)
+
+    lines = [
+        "decrypting vcf nodes...",
+        "injecting parser...",
+        "bypassing filters...",
+        "reading memory blocks..."
+    ]
+
+    random_line = random.choice(lines)  # 🔥 yaha generate hoga
+
+    percent = int((state["processed_lines"] / max(state["total_lines"], 1)) * 100)
+    filled = int(percent / 5)
+    bar = "█" * filled + "░" * (20 - filled)
+
+    return f"""<code>
+root@vcf-master:~# ./scan_vcf.sh
+
+[+] ACCESS GRANTED
+[+] {random_line}   👈 YE LINE ADD KARO
+
+FILES     : {state.get('files', 0)}
+EXTRACTED : {len(state.get('numbers', []))}
+
+PROGRESS  : {bar} {percent}%
+
+STATUS    : RUNNING...
+</code>"""
+
+
 # ============================================================
 # 🔹 Animate Progress
 # ============================================================
 def animate_progress(chat_id, msg_id, state):
-    last_done = 0
-    last_time = time.time()
-
     while state.get("animating"):
         time.sleep(0.5)
-        total = max(state.get("total_lines", 1), 1)
-        done = state.get("processed_lines", 0)
 
-        now = time.time()
-        speed = (done - last_done) / (now - last_time) if (now - last_time) > 0 else 0
-        last_done = done
-        last_time = now
-
-        percent = min(int((done / total) * 100), 100)
-        filled = int(percent / 5)
-        bar = "█" * filled + "░" * (20 - filled)
-
-        text_msg = (
-            f"🚀 *VCF SCANNING*\n"
-            f"━━━━━━━━━━━━━━━\n\n"
-            f"📁 Files: {state.get('files', 0)}\n"
-            f"📊 Extracted: {len(state.get('numbers', []))}\n\n"
-            f"📈 Progress: `{bar} {percent}%`\n\n"
-            f"⚡ Speed: {speed:.0f} lines/sec\n"
-            f"🔄 {done}/{total} lines"
-        )
+        text_msg = hacker_ui(state)
 
         try:
-            bot.edit_message_text(text_msg, chat_id, msg_id, parse_mode="Markdown")
+            bot.edit_message_text(
+                text_msg,
+                chat_id,
+                msg_id,
+                parse_mode="HTML"
+            )
         except:
             pass
 
@@ -837,24 +830,14 @@ def handle_files(message):
     elif filename.endswith(".vcf") and mode == "vcf_to_txt":
         state["files"] += 1
 
-        with open(path, encoding="utf-8", errors="ignore") as f:
-            for i, line in enumerate(f):
+        threading.Thread(
+            target=process_vcf_file,
+            args=(path, state),
+            daemon=True
+        ).start()
 
-                if "TEL" in line.upper():
-                    num = line.split(":")[-1].strip()
-                    num = num.replace(" ", "").replace("-", "").replace("+", "")
-                    if num.isdigit() and len(num) >= 8:
-                        state["numbers"].append(num)
+        return
 
-                # 🔥 UPDATE FREQUENTLY (SMOOTH)
-                if i % 20 == 0:
-                    update_vcf_progress(message, state)
-
-        os.remove(path)
-        # 🔥 FORCE FINAL 100%
-        state["last_count"] = len(state["numbers"])
-
-        update_vcf_progress(message, state)
 
     # ============================================================
     # MERGE VCF
