@@ -281,7 +281,7 @@ def handle_text(message):
         return
 
     if text == "Manual Text":
-        bot.send_message(message.chat.id, "✏️ Send text manually.")
+        start_admin_navy(message, user_id)
         return
 
     if text == "Merge VCF":
@@ -326,6 +326,10 @@ def handle_text(message):
 
     if mode == "admin_navy":
         handle_admin_navy(message, state, user_id)
+        return
+
+    if mode == "manual_text":
+        handle_manual_text(message, state, user_id)
         return
 
 # ── VCF TO TXT DONE ────────────────────────────────────
@@ -502,6 +506,25 @@ def start_admin_navy(message, user_id):
 
     msg = bot.send_message(message.chat.id, text)
     user_state[user_id]["msg_id"] = msg.message_id
+
+# ============================================================
+# 🔹 START MANUAL TEXT
+# ============================================================
+def start_manual_text(message, user_id):
+    user_state[user_id] = {
+        "mode": "manual_text",
+        "step": "collect",
+        "numbers": [],
+        "msg_id": None
+    }
+
+    bot.send_message(
+        message.chat.id,
+        "📤 Send Contacts\n"
+        "━━━━━━━━━━━━━━━\n"
+        "📁 Send one or multiple numbers\n\n"
+        "✅ Finish Type → /done"
+    )
 
 # ============================================================
 # 🔹 UPDATE PROGRESS MESSAGE FOR TXT TO VCF
@@ -907,6 +930,90 @@ def handle_admin_navy(message, state, user_id):
         bot.send_message(message.chat.id, "✅ Generation Completed! 🎉")
         user_state.pop(user_id, None)
 
+# ============================================================
+# 🔹 MANUAL TEXT
+# ============================================================
+def handle_manual_text(message, state, user_id):
+    text = message.text.strip()
+
+    # STEP 1 → COLLECT
+    if state["step"] == "collect":
+
+        # ✅ DONE
+        if text == "/done":
+
+            final_text = (
+                "📄 Collected Numbers\n"
+                "━━━━━━━━━━━━━━━\n"
+                f"📊 Total added: {len(state['numbers'])}\n"
+                "✅ Saved!"
+            )
+
+            if state.get("msg_id"):
+                bot.edit_message_text(final_text, message.chat.id, state["msg_id"])
+
+            state["step"] = "ask_name"
+
+            bot.send_message(
+                message.chat.id,
+                "📝 Enter file name\nExample: MyList"
+            )
+            return
+
+        # ✅ ADD NUMBERS
+        added = 0
+        for n in text.split():
+            n = n.replace("+","").replace("-","").replace(" ","")
+            if n.isdigit() and len(n) >= 5:
+                state["numbers"].append(n)
+                added += 1
+
+        # ❗ अगर कुछ add नहीं हुआ तो return
+        if added == 0:
+            return
+
+        # ✅ PROGRESS MESSAGE
+        msg_text = (
+            "📄 Collecting Numbers\n"
+            "━━━━━━━━━━━━━━━\n"
+            "⏳ Status: Saving...\n"
+            f"📊 Numbers added: {len(state['numbers'])}\n\n"
+            "👤 Keep sending numbers\n"
+            "✅ Finish Type → /done"
+        )
+
+        # ✅ FIRST TIME → NEW MESSAGE
+        if not state.get("msg_id"):
+            msg = bot.send_message(message.chat.id, msg_text)
+            state["msg_id"] = msg.message_id
+
+        # ✅ NEXT TIME → EDIT SAME MESSAGE
+        else:
+            try:
+                bot.edit_message_text(msg_text, message.chat.id, state["msg_id"])
+            except:
+                pass
+
+        return
+
+    # STEP 2 → FILE NAME
+    if state["step"] == "ask_name":
+        filename = f"{text}.txt"
+
+        with open(filename, "w") as f:
+            f.write("\n".join(state["numbers"]))
+
+        with open(filename, "rb") as f:
+            bot.send_document(
+                message.chat.id,
+                f,
+                caption="Generated Text"
+            )
+
+        os.remove(filename)
+
+        bot.send_message(message.chat.id, "Text generated successfully ✅")
+        user_state.pop(user_id, None)
 
 def start_merge_vcf(message, user_id):
     user_state[user_id] = {
