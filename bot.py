@@ -31,7 +31,7 @@ web = Flask(__name__)
 def home():
     return "Bot is running!"
 
-# 🔹 Config
+# 🔹 CONFIGRATION
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 
@@ -197,6 +197,10 @@ def progress_bar(current, total):
     bar = "█" * filled + "░" * (20 - filled)
     return f"{bar} {percent}%"
 
+
+# ============================================================
+# 🔹 HELP COMMAND
+# ============================================================
 @bot.message_handler(commands=["help"])
 def help_cmd(message):
     bot.send_message(
@@ -244,6 +248,10 @@ Here is a quick guide to help you use all premium features efficiently:
         parse_mode="HTML"
     )
 
+
+# ============================================================
+# 🔹 CANCEL COMMAND
+# ============================================================
 @bot.message_handler(commands=["cancel"])
 def cancel_cmd(message):
     user_id = message.from_user.id
@@ -1299,7 +1307,9 @@ def handle_split_vcf(message, state, user_id):
 
         split_vcf_files(message, state, user_id)
 
-
+# ============================================================
+# 🔹 SPILITING VCF AND SET FILE NAME 
+# ============================================================
 def split_vcf_files(message, state, user_id):
     contacts = state["contacts"]
     limit = state["limit"]
@@ -1392,6 +1402,9 @@ def handle_split_text(message, state, user_id):
 
         split_text_files(message, state, user_id)
 
+# ============================================================
+# 🔹 SPILITING TEXT AND SET FILE NAME 
+# ============================================================
 def split_text_files(message, state, user_id):
     lines = state["lines"]
     parts = state["parts"]
