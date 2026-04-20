@@ -70,7 +70,7 @@ def main_menu():
     
     # Row 5
     kb.row(
-        types.KeyboardButton("VCF Editer", style="primary", icon_custom_emoji_id="5334673106202010226"),
+        types.KeyboardButton("VCF EditOr", style="primary", icon_custom_emoji_id="5334673106202010226"),
         types.KeyboardButton("Get VCF details", style="primary", icon_custom_emoji_id="5188217332748527444")
     )
     
@@ -1795,32 +1795,6 @@ def handle_files(message):
         total = len(lines)
         name = filename.replace(".txt", "")
 
-    # 👉 auto filename set
-        state["file_name"] = name
-
-        bot.send_message(
-            message.chat.id,
-            f"✅ Text Loaded!\n"
-            f"━━━━━━━━━━━━━━━\n"
-        f"📁 File Name: {name}\n"
-        f"📄 Total Lines: {total}\n\n"
-        f"🔢 How many parts do you want to divide?\n"
-        f"(Example: 2 / 5 / 10)"
-    )
-    return
-
-    # ===== VCF EDITOR =====
-    elif filename.endswith(".txt") and mode == "split_text":
-
-        with open(path, encoding="utf-8", errors="ignore") as f:
-            lines = [line.strip() for line in f if line.strip()]
-
-        state["lines"] = lines
-        state["file_path"] = path
-
-        total = len(lines)
-        name = filename.replace(".txt", "")
-
         # 👉 auto filename set
         state["file_name"] = name
 
@@ -1833,6 +1807,46 @@ def handle_files(message):
             f"🔢 How many parts do you want to divide?\n"
             f"(Example: 2 / 5 / 10)"
         )
+        return
+
+    # ===== VCF EDITOR =====
+    elif filename.endswith(".vcf") and mode == "vcf_editor":
+        state["files"] += 1
+
+        contacts = []
+        with open(path, encoding="utf-8", errors="ignore") as f:
+            temp = ""
+            for line in f:
+                temp += line
+                if "END:VCARD" in line:
+                    contacts.append(temp)
+                    temp = ""
+
+        state["contacts"].extend(contacts)
+
+        os.remove(path)
+
+    # 🔥 MESSAGE UPDATE (LOCK)
+        msg_text = (
+            f"✏️ VCF Editor Mode\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"📁 Files Uploaded: {state['files']}\n"
+            f"📊 Contacts Found: {len(state['contacts'])}\n"
+            f"⏳ Status: Extracting...\n\n"
+            f"📂 Keep sending files\n"
+            f"✅ Finish Type → /done"
+        )
+
+        with msg_lock:
+            if not state.get("msg_id"):
+                msg = bot.send_message(message.chat.id, msg_text)
+                state["msg_id"] = msg.message_id
+            else:
+                try:
+                    bot.edit_message_text(msg_text, message.chat.id, state["msg_id"])
+                except:
+                    pass
+
         return
 
 
