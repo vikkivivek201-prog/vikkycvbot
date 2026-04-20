@@ -9,6 +9,9 @@ from telebot import types
 from threading import Lock
 
 
+# ============================================================
+# 🔹 ONLY VALID NUMBER EXTRACTION
+# ============================================================
 def extract_valid_numbers(text):
     numbers = re.findall(r'\d+', text)  # sirf digits nikalega
     valid = []
@@ -99,6 +102,10 @@ def start(message):
         daemon=True
     ).start()
 
+
+# ============================================================
+# 🔹 RUN ANIMATION
+# ============================================================
 def run_animation(uid, name, username, user_id):
     frames = [
         "[>_] INITIALIZING SYSTEM...\nEstablishing Secure Connection...\n[█░░░░░░░░░] 10%",
@@ -122,9 +129,6 @@ def run_animation(uid, name, username, user_id):
             )
         except:
             pass
-
-
-
     try:
         bot.delete_message(uid, msg.message_id)
     except:
@@ -297,9 +301,6 @@ def handle_text(message):
         return
 
     if text == "Merge VCF":
-        if not is_premium(user_id):
-            bot.send_message(message.chat.id, "❌ Ye Premium Feature hai 🔒")
-            return
         start_merge_vcf(message, user_id)
         return
 
@@ -372,6 +373,73 @@ def handle_text(message):
         )
         return
 
+# ── MERGE VCF DONE ─────────────────────────────
+    if mode == "merge_vcf" and text == "/done":
+
+        if not state["numbers"]:
+            bot.send_message(message.chat.id, "❌ No data found.")
+            return
+
+        final_text = (
+            "🔄 Merging VCF Files\n"
+            "━━━━━━━━━━━━━━━\n"
+            f"📊 Final Uploaded: {state['files']}\n"
+            "✅ Finished!"
+        )
+
+        if state.get("msg_id"):
+            try:
+                bot.edit_message_text(final_text, message.chat.id, state["msg_id"])
+            except:
+                pass
+
+        state["step"] = "ask_name"
+
+        bot.send_message(
+            message.chat.id,
+            "📝 Enter the name for merged .vcf file:"
+        )
+        return
+
+# ── MERGE VCF FILE NAME ───────────────────────
+    if mode == "merge_vcf" and state.get("step") == "ask_name":
+
+        filename = f"{text}.vcf"
+
+        unique_numbers = list(set(state["numbers"]))
+
+        vcf_lines = []
+        count = 1
+
+        for num in unique_numbers:
+            vcf_lines.append(
+                "BEGIN:VCARD\n"
+                "VERSION:3.0\n"
+                f"FN:Contact {count}\n"
+                f"TEL;TYPE=CELL:{num}\n"
+                "END:VCARD\n"
+            )
+            count += 1
+
+        with open(filename, "w") as f:
+            f.write("".join(vcf_lines))
+
+        with open(filename, "rb") as f:
+            bot.send_document(
+                message.chat.id,
+                f,
+                caption="✅ Merged VCF"
+            )
+
+        os.remove(filename)
+
+        bot.send_message(
+            message.chat.id,
+            "✅ Merging Completed Successfully! 🎉"
+        )
+
+        user_state.pop(user_id, None)
+        return
 
 # ── TEXT TO VCF ────────────────────────────────────────────
     if mode == "txt_to_vcf":
@@ -539,6 +607,23 @@ def start_manual_text(message, user_id):
     )
 
 # ============================================================
+# 🔹 START MERGE VCF
+# ============================================================
+def start_merge_vcf(message, user_id):
+    user_state[user_id] = {
+        "mode": "merge_vcf",
+        "step": "collecting",
+        "numbers": [],
+        "files": 0,
+        "msg_id": None
+    }
+
+    bot.send_message(
+        message.chat.id,
+        "🔄 Merge VCF Files\n━━━━━━━━━━━━━━━\n📁 Upload multiple .vcf files\n\n✅ Finish Type → /done"
+    )
+
+# ============================================================
 # 🔹 UPDATE PROGRESS MESSAGE FOR TXT TO VCF
 # ============================================================
 def update_progress_message(message, state):
@@ -592,6 +677,29 @@ def update_vcf_progress(message, state):
                 pass
 
 # ============================================================
+# 🔹 UPDATE PROGRESS MESSAGE FOR MERGE VCF
+# ============================================================
+def update_merge_progress(message, state):
+    msg_text = (
+        "🔄 Merging VCF Files\n"
+        "━━━━━━━━━━━━━━━\n"
+        f"📊 Uploaded VCFs: {state['files']}\n"
+        "⏳ Status: Processing...\n\n"
+        "📂 Keep sending files\n"
+        "✅ Finish Type → /done"
+    )
+
+    with msg_lock:
+        if not state.get("msg_id"):
+            msg = bot.send_message(message.chat.id, msg_text)
+            state["msg_id"] = msg.message_id
+        else:
+            try:
+                bot.edit_message_text(msg_text, message.chat.id, state["msg_id"])
+            except:
+                pass
+
+# ============================================================
 # 🔹 UPDATE MESSAGE FOR ADMIN NAVY VCF
 # ============================================================
 def update_admin_navy_msg(message, state, type_):
@@ -624,6 +732,8 @@ def update_admin_navy_msg(message, state, type_):
             bot.edit_message_text(text, message.chat.id, state["msg_id"])
         except:
             pass
+
+
 
 # ============================================================
 # 🔹 HANDLE TEXT (TXT TO VCF FLOW)
@@ -1020,13 +1130,6 @@ def handle_manual_text(message, state, user_id):
         user_state.pop(user_id, None)
 
 
-def start_merge_vcf(message, user_id):
-    user_state[user_id] = {
-        "mode": "merge_vcf",
-        "step": "ask_filename"
-    }
-    bot.send_message(message.chat.id, "📝 *Enter output VCF file name:*", parse_mode="Markdown")
-
 # ============================================================
 # 🔹 Animate Progress
 # ============================================================
@@ -1153,13 +1256,10 @@ def handle_files(message):
         update_vcf_progress(message, state)
         return
 
+    # ===== MERGE VCF =====
 
-    # ============================================================
-    # MERGE VCF
-    # ============================================================
     if filename.endswith(".vcf") and mode == "merge_vcf":
-        if "all_numbers" not in state:
-            state["all_numbers"] = []
+        state["files"] += 1
 
         with open(path, encoding="utf-8", errors="ignore") as f:
             for line in f:
@@ -1167,11 +1267,13 @@ def handle_files(message):
                     num = line.split(":")[-1].strip()
                     num = num.replace(" ", "").replace("-", "").replace("+", "")
                     if num.isdigit() and len(num) >= 8:
-                        state["all_numbers"].append(num)
+                        state["numbers"].append(num)
 
         os.remove(path)
-        bot.send_message(message.chat.id, "✅ File added. Send more or type DONE")
+
+        update_merge_progress(message, state)
         return
+
 
     # ============================================================
     # INVALID
