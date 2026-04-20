@@ -328,8 +328,8 @@ def handle_text(message):
         start_vcf_editor(message, user_id)
         return
 
-    if text == "Get VCF details":
-        bot.send_message(message.chat.id, "🔍 Send VCF file to get details.")
+    if text == "Get VCF Details":
+        start_vcf_details(message, user_id)
         return
 
     if text == "My Subscription":
@@ -811,6 +811,19 @@ def start_vcf_editor(message, user_id):
         "━━━━━━━━━━━━━━━\n"
         "📁 Send .vcf file(s)\n\n"
         "✅ Finish Type → /done"
+    )
+
+# ============================================================
+# 🔹 START GET VCF DETAILS
+# ============================================================
+def start_vcf_details(message, user_id):
+    user_state[user_id] = {
+        "mode": "vcf_details"
+    }
+
+    bot.send_message(
+        message.chat.id,
+        "📤 Upload a VCF file to see its details:"
     )
 
 # ============================================================
@@ -1849,6 +1862,112 @@ def handle_files(message):
 
         return
 
+
+    elif filename.endswith(".vcf") and mode == "vcf_details":
+
+        msg = bot.send_message(
+            message.chat.id,
+            f"⏳ Analyzing {filename}... Please wait!"
+        )
+
+        contacts = []
+        current_name = ""
+        current_phone = ""
+
+    # 🔹 READ VCF
+        with open(path, encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+
+                if line.startswith("FN:"):
+                    current_name = line.replace("FN:", "").strip()
+
+                elif "TEL" in line.upper():
+                    num = line.split(":")[-1].strip()
+                    num = num.replace(" ", "").replace("-", "")
+                    if not num.startswith("+"):
+                        num = "+" + num
+                    current_phone = num
+
+                elif "END:VCARD" in line:
+                    if current_name or current_phone:
+                        contacts.append((current_name, current_phone))
+                    current_name = ""
+                    current_phone = ""
+
+        os.remove(path)
+
+        total = len(contacts)
+
+    # 🔹 RANGE
+        start_name = contacts[0][0] if contacts else "-"
+        end_name = contacts[-1][0] if contacts else "-"
+
+    # 🔹 PAGE SYSTEM (future ready)
+        page = 1
+        total_pages = 1
+
+    # 🔹 BUILD MESSAGE
+        text = (
+            f"🔍 VCF ANALYSIS • PAGE {page}/{total_pages}\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📁 File: {filename}\n"
+            f"👥 Total: {total} Contacts\n"
+            f"🔢 Range: Contact 1 to {total}\n"
+            f"🏁 Start: {start_name}\n"
+            f"🛑 End: {end_name}\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n\n"
+        )
+
+    # 🔹 CONTACT LIST
+        for i, (name, phone) in enumerate(contacts, start=1):
+            text += (
+                f"{i}. 👤 {name}\n"
+                f"   ╰ 📞 {phone}\n\n"
+            )
+
+    # 🔹 EDIT MESSAGE
+        try:
+            bot.edit_message_text(text, message.chat.id, msg.message_id)
+        except:
+            bot.send_message(message.chat.id, text)
+
+    # ============================================================
+    # 🔹 TXT REPORT GENERATE
+    # ============================================================
+
+        txt_name = filename.replace(".vcf", "") + " details.txt"
+
+        report = (
+            "=========================================\n"
+            "          VCF DETAILS REPORT\n"
+            "=========================================\n"
+            f"File Name : {filename}\n"
+            f"Total     : {total} Contacts\n"
+            "Generated : @Rule_Breakerz VCF Engine\n"
+            "=========================================\n\n"
+        )
+
+        for i, (name, phone) in enumerate(contacts, start=1):
+            report += (
+                f"[{i}] Name : {name}\n"
+                f"    Phone: {phone}\n\n"
+            )
+
+        with open(txt_name, "w", encoding="utf-8") as f:
+            f.write(report)
+
+        with open(txt_name, "rb") as f:
+            bot.send_document(
+                message.chat.id,
+                f,
+                caption=f"✅ Scanning Completed Successfully! 🎉\n📁 Full Report: {txt_name}"
+            )
+
+        os.remove(txt_name)
+
+        user_state.pop(user_id, None)
+        return
 
     # ============================================================
     # INVALID
