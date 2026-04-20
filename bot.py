@@ -70,7 +70,7 @@ def main_menu():
     
     # Row 5
     kb.row(
-        types.KeyboardButton("VCF EditOr", style="primary", icon_custom_emoji_id="5334673106202010226"),
+        types.KeyboardButton("VCF Editor", style="primary", icon_custom_emoji_id="5334673106202010226"),
         types.KeyboardButton("Get VCF details", style="primary", icon_custom_emoji_id="5188217332748527444")
     )
     
