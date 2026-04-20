@@ -1002,7 +1002,9 @@ def handle_manual_text(message, state, user_id):
             f.write("\n".join(unique_numbers))
 
         with open(filename, "rb") as f:
-            bot.send_document(message.chat.id, f)
+            bot.send_document(message.chat.id, f,
+            caption="✅ Generated Text File"
+            )
 
         os.remove(filename)
 
