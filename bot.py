@@ -373,6 +373,54 @@ def handle_text(message):
         )
         return
 
+# ── TEXT TO VCF ────────────────────────────────────────────
+    if mode == "txt_to_vcf":
+        if state.get("step") == "collecting":
+            handle_txt_input(message, state)
+            return
+        else:
+            handle_txt_steps(message, state, user_id)
+            return
+
+    # ✅ ONLY EDIT — NO NEW MESSAGE
+        if state.get("msg_id"):
+            try:
+                bot.edit_message_text(
+                    final_text,
+                    message.chat.id,
+                    state["msg_id"]
+                )
+            except:
+                pass
+
+        state["step"] = "ask_name"
+
+        bot.send_message(
+            message.chat.id,
+            "📝 Enter VCF file name:\nExample: Contacts"
+        )
+        return
+
+    # 👉 FILE NAME INPUT
+    if mode == "vcf_to_txt" and state.get("step") == "ask_name":
+        filename = f"{text}.txt"
+
+        with open(filename, "w") as f:
+            f.write("\n".join(state["numbers"]))
+
+        with open(filename, "rb") as f:
+            bot.send_document(
+                message.chat.id,
+                f,
+                caption="✅ Extracted Numbers"
+            )
+
+        os.remove(filename)
+
+        bot.send_message(message.chat.id, "✅ Extraction Completed Successfully! 🎉")
+        user_state.pop(user_id, None)
+        return
+
 # ── MERGE VCF DONE ─────────────────────────────
     if mode == "merge_vcf" and text == "/done":
 
@@ -440,94 +488,6 @@ def handle_text(message):
 
         user_state.pop(user_id, None)
         return
-
-# ── TEXT TO VCF ────────────────────────────────────────────
-    if mode == "txt_to_vcf":
-        if state.get("step") == "collecting":
-            handle_txt_input(message, state)
-            return
-        else:
-            handle_txt_steps(message, state, user_id)
-            return
-
-    # ✅ ONLY EDIT — NO NEW MESSAGE
-        if state.get("msg_id"):
-            try:
-                bot.edit_message_text(
-                    final_text,
-                    message.chat.id,
-                    state["msg_id"]
-                )
-            except:
-                pass
-
-        state["step"] = "ask_name"
-
-        bot.send_message(
-            message.chat.id,
-            "📝 Enter VCF file name:\nExample: Contacts"
-        )
-        return
-
-    # 👉 FILE NAME INPUT
-    if mode == "vcf_to_txt" and state.get("step") == "ask_name":
-        filename = f"{text}.txt"
-
-        with open(filename, "w") as f:
-            f.write("\n".join(state["numbers"]))
-
-        with open(filename, "rb") as f:
-            bot.send_document(
-                message.chat.id,
-                f,
-                caption="✅ Extracted Numbers"
-            )
-
-        os.remove(filename)
-
-        bot.send_message(message.chat.id, "✅ Extraction Completed Successfully! 🎉")
-        user_state.pop(user_id, None)
-        return
-
-    # ── MERGE VCF ──────────────────────────────────────────────
-    if mode == "merge_vcf":
-        step = state.get("step")
-
-        if step == "ask_filename":
-            state["filename"] = text
-            state["step"] = "ask_prefix"
-            bot.send_message(message.chat.id, "✏️ *Enter contact name prefix:*", parse_mode="Markdown")
-            return
-
-        if step == "ask_prefix":
-            state["prefix"] = text
-            state["step"] = "collecting"
-            state["all_numbers"] = []
-            bot.send_message(message.chat.id, "📤 *Send all VCF files, then type* `DONE`", parse_mode="Markdown")
-            return
-
-        if text.upper() == "DONE" and step == "collecting":
-            numbers = list(set(state.get("all_numbers", [])))
-
-            if not numbers:
-                bot.send_message(message.chat.id, "❌ No data found.")
-                return
-
-            vcf_data = ""
-            for i, num in enumerate(numbers):
-                vcf_data += f"BEGIN:VCARD\nVERSION:3.0\nFN:{state['prefix']} {i+1}\nTEL;TYPE=CELL:{num}\nEND:VCARD\n"
-
-            filename = f"{state['filename']}.vcf"
-            with open(filename, "w") as f:
-                f.write(vcf_data)
-
-            with open(filename, "rb") as f:
-                bot.send_document(message.chat.id, f)
-            os.remove(filename)
-
-            user_state.pop(user_id, None)
-            bot.send_message(message.chat.id, "✅ *All VCF files merged!* 🎉", parse_mode="Markdown")
-            return
 
 
 # ============================================================
