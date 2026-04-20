@@ -308,7 +308,7 @@ def handle_text(message):
         start_merge_text(message, user_id)
         return
 
-    if mode == "Split_VCF":
+    if text == "Split VCF":
         handle_split_vcf(message, state, user_id)
         return
 
