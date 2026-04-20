@@ -325,7 +325,7 @@ def handle_text(message):
         return
 
     if text == "VCF Editor":
-        bot.send_message(message.chat.id, "✏️ VCF Editor coming soon!")
+        start_vcf_editor(message, user_id)
         return
 
     if text == "Get VCF details":
@@ -560,6 +560,90 @@ def handle_text(message):
         user_state.pop(user_id, None)
         return
 
+    # ── VCF EDITOR DONE ──
+    if mode == "vcf_editor" and text == "/done":
+
+        if not state["contacts"]:
+            bot.send_message(message.chat.id, "❌ No data found.")
+            return
+
+        final_text = (
+            f"✏️ VCF Editor Mode\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"📁 Files Processed: {state['files']}\n"
+            f"📊 Contacts Found: {len(state['contacts'])}\n"
+            f"✅ Finished!"
+        )
+
+        if state.get("msg_id"):
+            try:
+                bot.edit_message_text(final_text, message.chat.id, state["msg_id"])
+            except:
+                pass
+
+        state["step"] = "ask_prefix"
+
+        bot.send_message(
+            message.chat.id,
+            "🆔 Step 1 • New Contact Prefix\n"
+            "━━━━━━━━━━━━━━━\n"
+            "✏️ Enter the name you want for these contacts.\n\n"
+            "Example: Rule Test"
+        )
+        return
+
+    if mode == "vcf_editor":
+
+    # STEP 1 → PREFIX
+        if state.get("step") == "ask_prefix":
+            state["prefix"] = text
+            state["step"] = "ask_start"
+
+            bot.send_message(
+                message.chat.id,
+                "🔢 Step 2 • Starting Number\n"
+                "━━━━━━━━━━━━━━━\n"
+                "🔢 Where should the counting start?\n\n"
+                "Example: 1"
+            )
+            return
+
+    # STEP 2 → START NUMBER
+        if state.get("step") == "ask_start":
+            if not text.isdigit():
+                bot.send_message(message.chat.id, "❌ Enter valid number")
+                return
+
+            state["start"] = int(text)
+            state["step"] = "ask_filename"
+
+            bot.send_message(
+                message.chat.id,
+                "📁 Step 3 • VCF Filename\n"
+                "━━━━━━━━━━━━━━━\n"
+                "📝 Enter the name for your final exported VCF file.\n\n"
+                "Example: Marketing"
+            )
+            return
+
+    # STEP 3 → GENERATE
+        if state.get("step") == "ask_filename":
+
+            state["file_name"] = text
+            state["step"] = "processing"
+
+            bot.send_message(
+                message.chat.id,
+                f"🚀 Editing VCF Files\n"
+                f"━━━━━━━━━━━━━━━\n"
+                f"📁 Files: {state['files']}\n"
+                f"👥 Total Contacts: {len(state['contacts'])}\n"
+                f"⚡ Status: Processing..."
+            )
+
+            generate_edited_vcf(message, state, user_id)
+            return
+
 # ============================================================
 # 🔹 START TXT TO VCF
 # ============================================================
@@ -707,6 +791,26 @@ def start_split_text(message, user_id):
         "✂️ Split Text File\n"
         "━━━━━━━━━━━━━━━\n"
         "📁 Upload ONE large .txt file to split"
+    )
+
+# ============================================================
+# 🔹 START VCF EDITOR
+# ============================================================
+def start_vcf_editor(message, user_id):
+    user_state[user_id] = {
+        "mode": "vcf_editor",
+        "step": "collecting",
+        "contacts": [],
+        "files": 0,
+        "msg_id": None
+    }
+
+    bot.send_message(
+        message.chat.id,
+        "✏️ Upload VCF Files to Edit\n"
+        "━━━━━━━━━━━━━━━\n"
+        "📁 Send .vcf file(s)\n\n"
+        "✅ Finish Type → /done"
     )
 
 # ============================================================
@@ -1449,6 +1553,48 @@ def split_text_files(message, state, user_id):
 
     user_state.pop(user_id, None)
 
+def generate_edited_vcf(message, state, user_id):
+    contacts = state["contacts"]
+    prefix = state["prefix"]
+    start = state["start"]
+    filename = state["file_name"]
+
+    vcf_data = ""
+    count = start
+
+    for v in contacts:
+        lines = v.split("\n")
+        new_lines = []
+
+        for line in lines:
+            if line.startswith("FN:"):
+                new_lines.append(f"FN:{prefix} {count}")
+            else:
+                new_lines.append(line)
+
+        vcf_data += "\n".join(new_lines) + "\n"
+        count += 1
+
+    file_name = f"{filename}.vcf"
+
+    with open(file_name, "w", encoding="utf-8") as f:
+        f.write(vcf_data)
+
+    with open(file_name, "rb") as f:
+        bot.send_document(message.chat.id, f)
+
+    os.remove(file_name)
+
+    bot.send_message(
+        message.chat.id,
+        f"✅ Editing Completed Successfully! 🎉\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📊 Final Contacts: {len(contacts)}\n"
+        f"⚡ Files Generated: 1"
+    )
+
+    user_state.pop(user_id, None)
+
 # ============================================================
 # 🔹 Animate Progress
 # ============================================================
@@ -1663,6 +1809,46 @@ def handle_files(message):
     )
     return
 
+    # ===== VCF EDITOR =====
+    elif filename.endswith(".vcf") and mode == "vcf_editor":
+
+        state["files"] += 1
+
+        contacts = []
+        with open(path, encoding="utf-8", errors="ignore") as f:
+            temp = ""
+            for line in f:
+                temp += line
+                if "END:VCARD" in line:
+                    contacts.append(temp)
+                    temp = ""
+
+        state["contacts"].extend(contacts)
+
+        os.remove(path)
+
+    # 🔥 MESSAGE UPDATE (LOCK)
+        msg_text = (
+            f"✏️ VCF Editor Mode\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"📁 Files Uploaded: {state['files']}\n"
+            f"📊 Contacts Found: {len(state['contacts'])}\n"
+            f"⏳ Status: Extracting...\n\n"
+            f"📂 Keep sending files\n"
+            f"✅ Finish Type → /done"
+        )
+
+        with msg_lock:
+            if not state.get("msg_id"):
+                msg = bot.send_message(message.chat.id, msg_text)
+                state["msg_id"] = msg.message_id
+            else:
+                try:
+                    bot.edit_message_text(msg_text, message.chat.id, state["msg_id"])
+                except:
+                    pass
+
+        return
 
 
     # ============================================================
