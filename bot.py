@@ -1282,6 +1282,7 @@ def handle_split_vcf(message, state, user_id):
 
     # STEP 3 → PREFIX
     if state["step"] == "ask_prefix":
+
         if text == "🔄 Same as Old":
             state["prefix"] = None
         else:
@@ -1289,16 +1290,17 @@ def handle_split_vcf(message, state, user_id):
 
         state["step"] = "splitting"
 
+    # 🔥 REMOVE BUTTON HERE
         bot.send_message(
             message.chat.id,
             f"✂️ Splitting VCF Files...\n"
             f"━━━━━━━━━━━━━━━\n"
             f"📊 Total Contacts: {len(state['contacts'])}\n"
-            f"⚡ Status: Processing..."
+            f"⚡ Status: Processing...",
+            reply_markup=ReplyKeyboardRemove()
         )
 
-        split_vcf_files(message, state, user_id)
-
+    split_vcf_files(message, state, user_id)
 
 def split_vcf_files(message, state, user_id):
     contacts = state["contacts"]
