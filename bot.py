@@ -514,7 +514,7 @@ def start_manual_text(message, user_id):
     user_state[user_id] = {
         "mode": "manual_text",
         "step": "collect",
-        "numbers": set(),
+        "numbers": [],
         "msg_id": None
     }
 
@@ -968,7 +968,7 @@ def handle_manual_text(message, state, user_id):
 
             if n.isdigit() and len(n) >= 8:
                 if n not in state["numbers"]:
-                    state["numbers"].add(n)
+                    state["numbers"].append(n)
                     added += 1
 
         if added == 0:
@@ -1000,7 +1000,8 @@ def handle_manual_text(message, state, user_id):
         filename = f"{text}.txt"
 
         with open(filename, "w") as f:
-            f.write("\n".join(state["numbers"]))
+            unique_numbers = list(set(state["numbers"]))
+            f.write("\n".join(unique_numbers))
 
         with open(filename, "rb") as f:
             bot.send_document(message.chat.id, f)
