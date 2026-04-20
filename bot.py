@@ -308,8 +308,8 @@ def handle_text(message):
         start_merge_text(message, user_id)
         return
 
-    if text == "Split VCF":
-        bot.send_message(message.chat.id, "✂️ Split VCF coming soon!")
+    if mode == "split_vcf":
+        handle_split_vcf(message, state, user_id)
         return
 
     if text == "Split Text":
@@ -652,6 +652,26 @@ def start_merge_text(message, user_id):
     bot.send_message(
         message.chat.id,
         "🔄 Merge Text Files\n━━━━━━━━━━━━━━━\n📁 Upload multiple .txt files\n\n✅ Finish Type → /done"
+    )
+
+# ============================================================
+# 🔹 START SPLIT VCF
+# ============================================================
+def start_split_vcf(message, user_id):
+    user_state[user_id] = {
+        "mode": "split_vcf",
+        "step": "waiting_file",
+        "file_path": None,
+        "contacts": [],
+        "file_name": None,
+        "msg_id": None
+    }
+
+    bot.send_message(
+        message.chat.id,
+        "✂️ Split VCF File\n"
+        "━━━━━━━━━━━━━━━\n"
+        "📤 Send your large VCF file to split"
     )
 
 # ============================================================
@@ -1184,6 +1204,118 @@ def handle_manual_text(message, state, user_id):
         bot.send_message(message.chat.id, "✅ Text generated successfully")
         user_state.pop(user_id, None)
 
+# ============================================================
+# 🔹 HANDLE SPLIT VCF
+# ============================================================
+def handle_split_vcf(message, state, user_id):
+    text = message.text.strip()
+
+    # STEP 1 → LIMIT
+    if state["step"] == "waiting_file":
+        if not text.isdigit():
+            return
+
+        state["limit"] = int(text)
+        state["step"] = "ask_name"
+
+        kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        kb.add(types.KeyboardButton("🔄 Same as Old"))
+
+        old_name = state["file_path"].split("_",1)[-1].replace(".vcf","")
+
+        bot.send_message(
+            message.chat.id,
+            f"📁 VCF File Name?\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"Type a new name OR click below to keep old name: {old_name}",
+            reply_markup=kb
+        )
+        return
+
+    # STEP 2 → FILE NAME
+    if state["step"] == "ask_name":
+        if text == "🔄 Same as Old":
+            state["file_name"] = state["file_path"].split("_",1)[-1].replace(".vcf","")
+        else:
+            state["file_name"] = text
+
+        state["step"] = "ask_prefix"
+
+        kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        kb.add(types.KeyboardButton("🔄 Same as Old"))
+
+        bot.send_message(
+            message.chat.id,
+            "👤 Contact Name Prefix?\n"
+            "━━━━━━━━━━━━━━━\n"
+            "Type a new name OR click below to keep old names",
+            reply_markup=kb
+        )
+        return
+
+    # STEP 3 → PREFIX
+    if state["step"] == "ask_prefix":
+        if text == "🔄 Same as Old":
+            state["prefix"] = None
+        else:
+            state["prefix"] = text
+
+        state["step"] = "splitting"
+
+        bot.send_message(
+            message.chat.id,
+            f"✂️ Splitting VCF Files...\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"📊 Total Contacts: {len(state['contacts'])}\n"
+            f"⚡ Status: Processing..."
+        )
+
+        split_vcf_files(message, state, user_id)
+
+
+def split_vcf_files(message, state, user_id):
+    contacts = state["contacts"]
+    limit = state["limit"]
+    filename = state["file_name"]
+    prefix = state.get("prefix")
+
+    file_index = 1
+
+    for i in range(0, len(contacts), limit):
+        chunk = contacts[i:i+limit]
+
+        new_vcf = ""
+        count = 1
+
+        for v in chunk:
+            if prefix:
+                # replace FN line
+                lines = v.split("\n")
+                new_lines = []
+                for line in lines:
+                    if line.startswith("FN:"):
+                        new_lines.append(f"FN:{prefix} {count}")
+                    else:
+                        new_lines.append(line)
+                v = "\n".join(new_lines)
+
+            new_vcf += v
+            count += 1
+
+        file_name = f"{filename}_{file_index}.vcf"
+        file_index += 1
+
+        with open(file_name, "w", encoding="utf-8") as f:
+            f.write(new_vcf)
+
+        with open(file_name, "rb") as f:
+            bot.send_document(message.chat.id, f)
+
+        os.remove(file_name)
+
+    bot.send_message(message.chat.id, "✅ VCF Splitting Completed! 🎉")
+    user_state.pop(user_id, None)
+
 
 # ============================================================
 # 🔹 Animate Progress
@@ -1344,6 +1476,34 @@ def handle_files(message):
         update_merge_text_progress(message, state)
         return
 
+# ===== SPLIT VCF =====
+    elif filename.endswith(".vcf") and mode == "split_vcf":
+
+        contacts = []
+
+        with open(path, encoding="utf-8", errors="ignore") as f:
+            temp = ""
+            for line in f:
+                temp += line
+                if "END:VCARD" in line:
+                    contacts.append(temp)
+                    temp = ""
+
+        state["contacts"] = contacts
+        state["file_path"] = path
+
+        total = len(contacts)
+        name = filename.replace(".vcf", "")
+
+        bot.send_message(
+            message.chat.id,
+            f"✅ VCF Loaded!\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"📁 File: {name}\n"
+            f"👥 Total Contacts: {total}\n\n"
+            f"🔢 How many contacts do you want per file? (e.g., 50, 100)"
+        )
+        return
 
     # ============================================================
     # INVALID
