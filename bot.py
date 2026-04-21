@@ -4,6 +4,7 @@ import threading
 import json
 import re
 import time
+import psutil
 import telebot
 from telebot import types
 from threading import Lock
@@ -32,7 +33,7 @@ def build_stats_text(total_users, total_vcf):
 
 *⚙️ SERVER PERFORMANCE*
 ├ ⏱ *Uptime:* `{get_uptime()}`
-├ 📡 *Ping Status:* `(/ping)`
+├ 📡 *Ping Status:* (/ping)
 ├ 🎁 *Free Mode:* `ON`
 └ 🟢 *Status:* `Online`
 
@@ -41,7 +42,7 @@ def build_stats_text(total_users, total_vcf):
 ├ ⚡ *Speed:* `Fast Response`
 └ 🛡 *Security:* `Protected`
 ━━━━━━━━━━━━━━━━━━━━━━
-👨‍💻 *Developed By:* `@Vikky_IND`
+👨‍💻 *Developed By:* @Vikky_IND
 🔄 *Last Updated:* `{get_indian_time()}`
 """
 
@@ -204,6 +205,99 @@ def refresh_stats(call):
     markup.add(
         types.InlineKeyboardButton("🔄 Refresh", callback_data="refresh_stats")
     )
+
+    bot.edit_message_text(
+        text,
+        call.message.chat.id,
+        call.message.message_id,
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
+
+# ============================================================
+# 🔹 /PING COMMAND
+# ============================================================
+@bot.message_handler(commands=["ping"])
+def ping_cmd(message):
+
+    start = time.time()
+
+    msg = bot.send_message(message.chat.id, "🏓 Checking...")
+
+    end = time.time()
+    ping = int((end - start) * 1000)
+
+    uptime = get_uptime()
+
+    cpu = psutil.cpu_percent()
+    ram = psutil.virtual_memory().percent
+
+    text = f"""🏓 *PONG! SYSTEM STATUS*
+━━━━━━━━━━━━━━━━━━━━━━
+
+📡 *Latency:* `{ping} ms`
+⚡ *Speed:* `Ultra Fast`
+⏱ *Uptime:* `{uptime}`
+
+🟢 *Status:* `Online`
+🛡 *Server:* `Operational`
+🔥 *CPU Usage:* `{cpu}%`
+💾 *RAM Usage:* `{ram}%`
+
+━━━━━━━━━━━━━━━━━━━━━━
+🚀 *Performance:* `Stable & Smooth`
+🤖 *Engine:* `VCF Master Core`
+
+👨‍💻 *Owner:* @Vikky_IND
+"""
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🔄 Refresh", callback_data="refresh_ping"))
+
+    bot.edit_message_text(
+        text,
+        message.chat.id,
+        msg.message_id,
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
+
+# ============================================================
+# 🔹 REFRESH PING
+# ============================================================
+@bot.callback_query_handler(func=lambda call: call.data == "refresh_ping")
+def refresh_ping(call):
+
+    start = time.time()
+    end = time.time()
+    ping = int((end - start) * 1000)
+
+    uptime = get_uptime()
+
+    cpu = psutil.cpu_percent()
+    ram = psutil.virtual_memory().percent
+
+    text = f"""🏓 *PONG! SYSTEM STATUS*
+━━━━━━━━━━━━━━━━━━━━━━
+
+📡 *Latency:* `{ping} ms`
+⚡ *Speed:* `Ultra Fast`
+⏱ *Uptime:* `{uptime}`
+
+🟢 *Status:* `Online`
+🛡 *Server:* `Operational`
+🔥 *CPU Usage:* `{cpu}%`
+💾 *RAM Usage:* `{ram}%`
+
+━━━━━━━━━━━━━━━━━━━━━━
+🚀 *Performance:* `Stable & Smooth`
+🤖 *Engine:* `VCF Master Core`
+
+👨‍💻 *Owner:* @Vikky_IND
+"""
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🔄 Refresh", callback_data="refresh_ping"))
 
     bot.edit_message_text(
         text,
@@ -1845,7 +1939,7 @@ def process_vcf_file(path, state):
 # ============================================================
 # 🔹 CALLBACK HANDLER
 # ============================================================
-@bot.callback_query_handler(func=lambda call: True)
+@bot.callback_query_handler(func=lambda call: call.data in ["next", "prev", "refresh_stats", "refresh_ping"])
 def callback_handler(call):
     user_id = call.from_user.id
     state = user_state.get(user_id)
