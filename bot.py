@@ -314,6 +314,44 @@ def refresh_stats(call):
     send_stats(call.message.chat.id, call.message.message_id)
 
 # ============================================================
+# 🔹 ADVANCED PING COMMAND
+# ============================================================
+
+@bot.message_handler(commands=['ping'])
+def ping_cmd(message):
+    start = time.time()
+
+    msg = bot.send_message(message.chat.id, "🏓 Checking system...")
+
+    end = time.time()
+    ping = int((end - start) * 1000)
+
+    # 🔥 SPEED LOGIC
+    if ping < 100:
+        speed = "🚀 Ultra Fast"
+    elif ping < 200:
+        speed = "⚡ Fast"
+    elif ping < 350:
+        speed = "🐢 Normal"
+    else:
+        speed = "🐌 Slow"
+
+    text = f"""🏓 PONG! SYSTEM STATUS
+━━━━━━━━━━━━━━━━━━━━━
+📡 Latency: {ping} ms
+⚡️ Speed: {speed}
+🟢 Status: Online
+🛡 Server: Operational
+━━━━━━━━━━━━━━━━━━━━━
+Owner: @Vikky_IND
+"""
+
+    try:
+        bot.edit_message_text(text, message.chat.id, msg.message_id)
+    except:
+        bot.send_message(message.chat.id, text)
+
+# ============================================================
 # 🔹 CANCEL COMMAND
 # ============================================================
 @bot.message_handler(commands=["cancel"])
