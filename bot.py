@@ -1614,6 +1614,49 @@ def generate_edited_vcf(message, state, user_id):
     user_state.pop(user_id, None)
 
 # ============================================================
+# 🔹 GENERATE TXT REPORT
+# ============================================================
+def generate_txt_report(state):
+    contacts = state["contacts"]
+    filename = state.get("file_name", "Unknown.vcf")
+
+    report = ""
+    report += "=========================================\n"
+    report += "          VCF DETAILS REPORT\n"
+    report += "=========================================\n"
+    report += f"File Name : {filename}\n"
+    report += f"Total     : {len(contacts)} Contacts\n"
+    report += "Generated : @Rule_Breakerz VCF Engine\n"
+    report += "=========================================\n\n"
+
+    for i, (name, phone) in enumerate(contacts, start=1):
+        report += f"[{i}] Name : {name}\n"
+        report += f"    Phone: {phone}\n\n"
+
+    return report
+
+
+# ============================================================
+# 🔹 SEND TXT REPORT
+# ============================================================
+def send_txt_report(chat_id, state):
+    report_text = generate_txt_report(state)
+
+    file_name = "VCF_Report.txt"
+
+    with open(file_name, "w", encoding="utf-8") as f:
+        f.write(report_text)
+
+    with open(file_name, "rb") as f:
+        bot.send_document(
+            chat_id,
+            f,
+            caption="✅ Scanning Completed Successfully! 🎉\n📁 Full Report: download txt"
+        )
+
+    os.remove(file_name)
+
+# ============================================================
 # 🔹 Animate Progress
 # ============================================================
 def animate_progress(chat_id, msg_id, state):
@@ -1887,6 +1930,7 @@ def handle_files(message):
     elif filename.endswith(".vcf") and mode == "vcf_details":
 
         state["contacts"] = []
+        state["file_name"] = filename
     
         with open(path, encoding="utf-8", errors="ignore") as f:
             current_name = ""
@@ -1916,6 +1960,7 @@ def handle_files(message):
         state["page"] = 1
 
         show_vcf_page(message.chat.id, state)
+        send_txt_report(message.chat.id, state)
         return
 
     # ============================================================
@@ -1937,31 +1982,35 @@ def show_vcf_page(chat_id, state):
     end = start + per_page
     chunk = contacts[start:end]
 
-    text = (
-        f"🔍 VCF DETAILS • PAGE {page}/{total_pages}\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"👥 Total: {total} Contacts\n\n"
-    )
+    text = f"""╭━━━ 📁 VCF DETAILS ━━━╮
+┃ 📄 File    : {state.get('file_name','Unknown')}
+┃ 👥 Contacts: {total}
+┃ 📊 Showing : {start+1}-{min(end, total)}
+╰━━━━━━━━━━━━━━━━━━━━━━╯
+
+┏━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 📄 Page {page} / {total_pages}
+┗━━━━━━━━━━━━━━━━━━━━━━┛
+"""
 
     for i, (name, phone) in enumerate(chunk, start=start+1):
-        text += f"{i}. 👤 {name}\n   ╰ 📞 {phone}\n\n"
+        text += f"\n{i}. 👤 {name}\n   ┗ 📞 {phone}\n"
 
-    # 🔘 Buttons
-    kb = types.InlineKeyboardMarkup()
+    kb = types.InlineKeyboardMarkup(row_width=2)
 
+    buttons = []
     if page > 1:
-        kb.add(types.InlineKeyboardButton("⬅️ Prev", callback_data="prev"))
-
+        buttons.append(types.InlineKeyboardButton("⬅️ Prev", callback_data="prev"))
     if page < total_pages:
-        kb.add(types.InlineKeyboardButton("➡️ Next", callback_data="next"))
+        buttons.append(types.InlineKeyboardButton("Next ➡️", callback_data="next"))
 
-    # ✅ SAME MESSAGE EDIT
-    bot.edit_message_text(
-        text,
-        chat_id,
-        state["msg_id"],
-        reply_markup=kb
-    )
+    if buttons:
+        kb.row(*buttons)
+
+    try:
+        bot.edit_message_text(text, chat_id, state["msg_id"], reply_markup=kb)
+    except:
+        pass
 
 # ============================================================
 # 🔹 Run Bot
