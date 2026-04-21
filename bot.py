@@ -13,7 +13,7 @@ from threading import Lock
 # 🔹 ONLY VALID NUMBER EXTRACTION
 # ============================================================
 def extract_valid_numbers(text):
-    numbers = re.findall(r'\d+', text)  # sirf digits nikalega
+    numbers = re.findall(r'\b\d{8,}\b', text)
     valid = []
 
     for n in numbers:
@@ -37,6 +37,10 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 
 bot = telebot.TeleBot(TOKEN)
 user_state = {}
+
+def clear_user(user_id):
+    if user_id in user_state:
+        del user_state[user_id]
 
 # ============================================================
 # 🔹 MAIN MENU — Colored Buttons + Animated Emoji
@@ -272,7 +276,7 @@ def cancel_cmd(message):
                 pass
 
         # 👉 remove state
-        user_state.pop(user_id, None)
+        clear_user(user_id)
 
     bot.send_message(
         message.chat.id,
@@ -398,24 +402,6 @@ def handle_text(message):
             handle_txt_steps(message, state, user_id)
             return
 
-    # ✅ ONLY EDIT — NO NEW MESSAGE
-        if state.get("msg_id"):
-            try:
-                bot.edit_message_text(
-                    final_text,
-                    message.chat.id,
-                    state["msg_id"]
-                )
-            except:
-                pass
-
-        state["step"] = "ask_name"
-
-        bot.send_message(
-            message.chat.id,
-            "📝 Enter VCF file name:\nExample: Contacts"
-        )
-        return
 
     # 👉 FILE NAME INPUT
     if mode == "vcf_to_txt" and state.get("step") == "ask_name":
@@ -434,7 +420,7 @@ def handle_text(message):
         os.remove(filename)
 
         bot.send_message(message.chat.id, "✅ Extraction Completed Successfully! 🎉")
-        user_state.pop(user_id, None)
+        clear_user(user_id)
         return
 
 # ── MERGE VCF DONE ─────────────────────────────
@@ -502,7 +488,7 @@ def handle_text(message):
             "✅ Merging Completed Successfully! 🎉"
         )
 
-        user_state.pop(user_id, None)
+        clear_user(user_id)
         return
 
 # ── MERGE TEXT DONE ─────────────────────────────
@@ -1067,7 +1053,7 @@ def handle_txt_steps(message, state, user_id):
 # 🔹 CLEAN VCF GENERATOR (NO BUG)
 # ============================================================
 def generate_vcf_files_clean(message, state, user_id, limit):
-    numbers = state["numbers"]
+    numbers = list(dict.fromkeys(state["numbers"]))
 
     bot.send_message(
         message.chat.id,
@@ -1115,7 +1101,7 @@ def generate_vcf_files_clean(message, state, user_id, limit):
         os.remove(filename)
 
     bot.send_message(message.chat.id, "✅ VCF Generation Completed Successfully! 🎉")
-    user_state.pop(user_id, None)
+    clear_user(user_id)
 
 # ============================================================
 # 🔹 HANDLE ADMIN NAVY
@@ -1278,7 +1264,7 @@ def handle_admin_navy(message, state, user_id):
         os.remove(filename)
 
         bot.send_message(message.chat.id, "✅ Generation Completed! 🎉")
-        user_state.pop(user_id, None)
+        clear_user(user_id)
 
 # ============================================================
 # 🔹 MANUAL TEXT
@@ -1359,7 +1345,7 @@ def handle_manual_text(message, state, user_id):
         os.remove(filename)
 
         bot.send_message(message.chat.id, "✅ Text generated successfully")
-        user_state.pop(user_id, None)
+        clear_user(user_id)
 
 # ============================================================
 # 🔹 HANDLE SPLIT VCF
@@ -1481,7 +1467,7 @@ def split_vcf_files(message, state, user_id):
         "✅ VCF Splitting Completed! 🎉",
         reply_markup=main_menu()
         )
-    user_state.pop(user_id, None)
+    clear_user(user_id)
 
 
 # ============================================================
@@ -1568,8 +1554,7 @@ def split_text_files(message, state, user_id):
         "✅ Text Splitting Completed! 🎉",
         reply_markup=main_menu()
     )
-
-    user_state.pop(user_id, None)
+    clear_user(user_id)
 
 # ============================================================
 # 🔹 GENERATE EDITED VCF
@@ -1614,7 +1599,7 @@ def generate_edited_vcf(message, state, user_id):
         f"⚡ Files Generated: 1"
     )
 
-    user_state.pop(user_id, None)
+    clear_user(user_id)
 
 # ============================================================
 # 🔹 GENERATE TXT REPORT
@@ -1939,7 +1924,7 @@ def handle_files(message):
     elif filename.endswith(".vcf") and mode == "vcf_details":
 
         state["contacts"] = []
-        state["file_name"] = filename
+        state["file_name"] = filename.replace(".vcf", "")
     
         with open(path, encoding="utf-8", errors="ignore") as f:
             current_name = ""
