@@ -12,6 +12,9 @@ from datetime import datetime
 
 START_TIME = time.time()
 
+def get_indian_time():
+    return datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d %b %Y, %I:%M:%S %p")
+
 def get_uptime():
     seconds = int(time.time() - START_TIME)
     days = seconds // 86400
@@ -20,8 +23,27 @@ def get_uptime():
     seconds = seconds % 60
     return f"{days}d {hours}h {minutes}m {seconds}s"
 
-def get_indian_time():
-    return datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d %b %Y, %I:%M:%S %p")
+def build_stats_text(total_users, total_vcf):
+    return f"""*📊 SYSTEM LIVE STATISTICS*
+━━━━━━━━━━━━━━━━━━━━━━
+*📈 GLOBAL BOT USAGE*
+├ 👥 *Total Users:* `{total_users}`
+└ 📁 *VCFs Generated:* `{total_vcf}`
+
+*⚙️ SERVER PERFORMANCE*
+├ ⏱ *Uptime:* `{get_uptime()}`
+├ 📡 *Ping Status:* `(/ping)`
+├ 🎁 *Free Mode:* `ON`
+└ 🟢 *Status:* `Online`
+
+*🤖 SYSTEM HEALTH*
+├ 🔥 *Load:* `Optimal`
+├ ⚡ *Speed:* `Fast Response`
+└ 🛡 *Security:* `Protected`
+━━━━━━━━━━━━━━━━━━━━━━
+👨‍💻 *Developed By:* `@Vikky_IND`
+🔄 *Last Updated:* `{get_indian_time()}`
+"""
 
 # ============================================================
 # 🔹 ONLY VALID NUMBER EXTRACTION
@@ -2033,42 +2055,28 @@ def handle_files(message):
 # ============================================================
 # /Stats handle
 # ============================================================
-@bot.message_handler(commands=['stats'])
-def stats(message):
-    data = load_data()
+@bot.message_handler(commands=["stats"])
+def stats_cmd(message):
 
-    total_users = len(data["users"])
-    total_vcf = data["vcf_count"]
+    data = load_stats()
 
-    text = f"""*📊 SYSTEM LIVE STATISTICS*
-━━━━━━━━━━━━━━━━━━━━━━
-*📈 GLOBAL BOT USAGE*
-├ 👥 *Total Users:* `{total_users}`
-└ 📁 *VCFs Generated:* `{total_vcf}`
+    total_users = len(set(data.get("users", [])))
+    total_vcf = data.get("vcf", 0)
 
-*⚙️ SERVER PERFORMANCE*
-├ ⏱ *Uptime:* `{get_uptime()}`
-├ 📡 *Ping Status:* `(/ping)`
-├ 🎁 *Free Mode:* `ON`
-└ 🟢 *Status:* `Online`
-
-*🤖 SYSTEM HEALTH*
-├ 🔥 *Load:* `Optimal`
-├ ⚡ *Speed:* `Fast Response`
-└ 🛡 *Security:* `Protected`
-━━━━━━━━━━━━━━━━━━━━━━
-👨‍💻 *Developed By:* `@Vikky_IND`
-🔄 *Last Updated:* `{get_indian_time()}`
-"""
+    text = build_stats_text(total_users, total_vcf)
 
     markup = types.InlineKeyboardMarkup()
 
-    # 🔒 ONLY ADMIN BUTTON
-    if message.from_user.id == ADMIN_ID:
-        markup.add(types.InlineKeyboardButton("🔄 Update Statistics", callback_data="refresh_stats"))
+    markup.add(
+        types.InlineKeyboardButton("🔄 Update Statistics", callback_data="refresh_stats")
+    )
 
-    bot.send_message(message.chat.id, text, parse_mode="Markdown, reply_markup=markup")
-
+    bot.send_message(
+        message.chat.id,
+        text,
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
 
 
 # ============================================================
@@ -2076,38 +2084,26 @@ def stats(message):
 # ============================================================
 @bot.callback_query_handler(func=lambda call: call.data == "refresh_stats")
 def refresh_stats(call):
-    if call.from_user.id != ADMIN_ID:
-        return
 
-    data = load_data()
+    data = load_stats()
 
-    text = f"""*📊 SYSTEM LIVE STATISTICS*
-━━━━━━━━━━━━━━━━━━━━━━
-*📈 GLOBAL BOT USAGE*
-├ 👥 *Total Users:* `{total_users}`
-└ 📁 *VCFs Generated:* `{total_vcf}`
+    total_users = len(set(data.get("users", [])))
+    total_vcf = data.get("vcf", 0)
 
-*⚙️ SERVER PERFORMANCE*
-├ ⏱ *Uptime:* `{get_uptime()}`
-├ 📡 *Ping Status:* `(/ping)`
-├ 🎁 *Free Mode:* `ON`
-└ 🟢 *Status:* `Online`
+    text = build_stats_text(total_users, total_vcf)
 
-*🤖 SYSTEM HEALTH*
-├ 🔥 *Load:* `Optimal`
-├ ⚡ *Speed:* `Fast Response`
-└ 🛡 *Security:* `Protected`
-━━━━━━━━━━━━━━━━━━━━━━
-👨‍💻 *Developed By:* `@Vikky_IND`
-🔄 *Last Updated:* `{get_indian_time()}`
-"""
+    markup = types.InlineKeyboardMarkup()
+
+    markup.add(
+        types.InlineKeyboardButton("🔄 Update Statistics", callback_data="refresh_stats")
+    )
 
     bot.edit_message_text(
         text,
         call.message.chat.id,
         call.message.message_id,
         parse_mode="Markdown",
-        reply_markup=call.message.reply_markup
+        reply_markup=markup
     )
 
 # ============================================================
