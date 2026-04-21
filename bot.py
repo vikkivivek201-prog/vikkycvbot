@@ -10,6 +10,8 @@ from threading import Lock
 START_TIME = time.time()
 total_users = set()
 vcf_count = 0
+from datetime import datetime, timedelta
+refresh_cooldown = {}
 
 # ============================================================
 # 🔹 ONLY VALID NUMBER EXTRACTION
@@ -255,9 +257,8 @@ Here is a quick guide to help you use all premium features efficiently:
         parse_mode="HTML"
     )
 
-
 # ============================================================
-# 🔹 STATS COMMAND (NEW)
+# 🔹 STATS COMMAND (FIXED)
 # ============================================================
 
 @bot.message_handler(commands=['stats'])
@@ -277,6 +278,10 @@ def send_stats(chat_id, message_id=None):
 
     uptime = f"{days}d {hours}h {minutes}m {seconds}s"
 
+    # ✅ TIME FIX (YAHI PAR HOGA)
+    now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    last_updated = now.strftime("%d %b %Y, %I:%M:%S %p")
+
     text = f"""📊 SYSTEM LIVE STATISTICS
 ━━━━━━━━━━━━━━━━━━━━━━
 📈 GLOBAL BOT USAGE
@@ -290,7 +295,7 @@ def send_stats(chat_id, message_id=None):
  └ 🟢 Status: Online
 ━━━━━━━━━━━━━━━━━━━━━━
 👨‍💻 Developed By: @Vikky_IND
-🔄 Last Updated: {time.strftime("%d %b %Y, %I:%M:%S %p")}
+🔄 Last Updated: {last_updated}
 """
 
     kb = types.InlineKeyboardMarkup()
@@ -308,10 +313,26 @@ def send_stats(chat_id, message_id=None):
 
 @bot.callback_query_handler(func=lambda call: call.data == "refresh_stats")
 def refresh_stats(call):
-    if call.from_user.id != ADMIN_ID:
+
+    user_id = call.from_user.id
+    now = time.time()
+
+    # ❌ Non-admin → silent ignore
+    if user_id != ADMIN_ID:
         return
 
+    # ⏱ Cooldown check (3 sec)
+    last_used = refresh_cooldown.get(user_id, 0)
+    if now - last_used < 3:
+        return  # silently ignore spam click
+
+    # ✅ Update cooldown time
+    refresh_cooldown[user_id] = now
+
+    # 🔄 Refresh stats
+    bot.answer_callback_query(call.id)
     send_stats(call.message.chat.id, call.message.message_id)
+
 
 # ============================================================
 # 🔹 ADVANCED PING COMMAND
@@ -332,8 +353,7 @@ def ping_cmd(message):
     elif ping < 200:
         speed = "⚡ Fast"
     elif ping < 350:
-        speed = "🐢 Normal"
-    else:
+        speed = "🐢 Normal"    else:
         speed = "🐌 Slow"
 
     text = f"""🏓 PONG! SYSTEM STATUS
