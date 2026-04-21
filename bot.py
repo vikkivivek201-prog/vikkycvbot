@@ -284,6 +284,38 @@ def cancel_cmd(message):
         reply_markup=main_menu()
     )
 
+@bot.message_handler(commands=["skip"])
+def skip_cmd(message):
+    user_id = message.from_user.id
+    state = user_state.get(user_id)
+
+    if not state:
+        return
+
+    mode = state.get("mode")
+    step = state.get("step")
+
+    # 🔹 ADMIN/NAVY FLOW
+    if mode == "admin_navy":
+        if step == "admin_collect":
+            state["step"] = "navy_collect"
+            bot.send_message(
+                message.chat.id,
+                "⏭ Admin skipped!\n\n⚓ Now send Navy contacts.\n\n✅ Finish → /done"
+            )
+            return
+
+        elif step == "navy_collect":
+            state["step"] = "ask_admin_name"
+            bot.send_message(
+                message.chat.id,
+                "⏭ Navy skipped!\n\n🖋 Enter Admin Name Prefix:"
+            )
+            return
+
+    # 🔹 DEFAULT SKIP
+    bot.send_message(message.chat.id, "⚠️ Nothing to skip here.")
+
 # ============================================================
 # 🔹 TEXT HANDLER (FIXED)
 # ============================================================
@@ -291,6 +323,9 @@ def cancel_cmd(message):
 def handle_text(message):
     user_id = message.from_user.id
     text = message.text.strip()
+    if text == "/skip":
+        skip_cmd(message)
+        return
     state = user_state.get(user_id)
     mode = state.get("mode") if state else None
 
