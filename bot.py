@@ -45,16 +45,6 @@ def build_stats_text(total_users, total_vcf):
 🔄 *Last Updated:* `{get_indian_time()}`
 """
 
-def load_stats():
-    try:
-        with open("stats.json", "r") as f:
-            return json.load(f)
-    except:
-        return {"users": [], "vcf": 0}
-
-def save_stats(data):
-    with open("stats.json", "w") as f:
-        json.dump(data, f)
 
 # ============================================================
 # 🔹 ONLY VALID NUMBER EXTRACTION
@@ -171,6 +161,57 @@ def start(message):
         daemon=True
     ).start()
 
+# ============================================================
+# 🔹 STATS COMMAND (CLEAN VERSION)
+# ============================================================
+@bot.message_handler(commands=["stats"])
+def stats_cmd(message):
+
+    data = load_data()
+
+    total_users = len(set(data.get("users", [])))
+    total_vcf = data.get("vcf_count", 0)
+
+    text = build_stats_text(total_users, total_vcf)
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(
+        types.InlineKeyboardButton("🔄 Refresh", callback_data="refresh_stats")
+    )
+
+    bot.send_message(
+        message.chat.id,
+        text,
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
+
+
+# ============================================================
+# 🔹 STATS REFRESH BUTTON
+# ============================================================
+@bot.callback_query_handler(func=lambda call: call.data == "refresh_stats")
+def refresh_stats(call):
+
+    data = load_data()
+
+    total_users = len(set(data.get("users", [])))
+    total_vcf = data.get("vcf_count", 0)
+
+    text = build_stats_text(total_users, total_vcf)
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(
+        types.InlineKeyboardButton("🔄 Refresh", callback_data="refresh_stats")
+    )
+
+    bot.edit_message_text(
+        text,
+        call.message.chat.id,
+        call.message.message_id,
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
 
 # ============================================================
 # 🔹 RUN ANIMATION
@@ -2065,60 +2106,6 @@ def handle_files(message):
     os.remove(path)
     bot.send_message(message.chat.id, "❌ Invalid file type for current mode.")
 
-
-# ============================================================
-# /Stats handle
-# ============================================================
-@bot.message_handler(commands=["stats"])
-def stats_cmd(message):
-
-    data = load_data()
-
-    total_users = len(set(data.get("users", [])))
-    total_vcf = data.get("vcf_count", 0)
-
-    text = build_stats_text(total_users, total_vcf)
-
-    markup = types.InlineKeyboardMarkup()
-
-    markup.add(
-        types.InlineKeyboardButton("🔄 Update Statistics", callback_data="refresh_stats")
-    )
-
-    bot.send_message(
-        message.chat.id,
-        text,
-        parse_mode="Markdown",
-        reply_markup=markup
-    )
-
-
-# ============================================================
-# /STATS REFRESH CALLBACK
-# ============================================================
-@bot.callback_query_handler(func=lambda call: call.data == "refresh_stats")
-def refresh_stats(call):
-
-    data = load_data()
-
-    total_users = len(set(data.get("users", [])))
-    total_vcf = data.get("vcf_count", 0)
-
-    text = build_stats_text(total_users, total_vcf)
-
-    markup = types.InlineKeyboardMarkup()
-
-    markup.add(
-        types.InlineKeyboardButton("🔄 Update Statistics", callback_data="refresh_stats")
-    )
-
-    bot.edit_message_text(
-        text,
-        call.message.chat.id,
-        call.message.message_id,
-        parse_mode="Markdown",
-        reply_markup=markup
-    )
 
 # ============================================================
 # 🔹 SHOW VCF PAGE
