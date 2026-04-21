@@ -94,7 +94,7 @@ def main_menu():
 @bot.message_handler(commands=["start"])
 def start(message):
     uid = message.chat.id
-    total_users.add(message.from_user.id) ✅
+    total_users.add(message.from_user.id)
     bot.reply_to(message, "Welcome!")
 
     # 🔹 USER DATA
