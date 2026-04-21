@@ -4,10 +4,25 @@ import threading
 import json
 import re
 import time
+import pytz
 import telebot
 from telebot import types
 from threading import Lock
+from datetime import datetime
 
+START_TIME = time.time()
+
+def get_uptime():
+    seconds = int(time.time() - START_TIME)
+    days = seconds // 86400
+    hours = (seconds % 86400) // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    return f"{days}d {hours}h {minutes}m {seconds}s"
+
+def get_indian_time():
+    india = pytz.timezone("Asia/Kolkata")
+    return datetime.now(india).strftime("%d %b %Y, %I:%M:%S %p")
 
 # ============================================================
 # 🔹 ONLY VALID NUMBER EXTRACTION
@@ -37,6 +52,21 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", "5328734113"))
 
 bot = telebot.TeleBot(TOKEN)
 user_state = {}
+
+# ============================================================
+# 🔹 GLOBAL DATA (STATS SYSTEM)
+# ============================================================
+DATA_FILE = "data.json"
+
+def load_data():
+    if not os.path.exists(DATA_FILE):
+        return {"users": [], "vcf_count": 0}
+    with open(DATA_FILE, "r") as f:
+        return json.load(f)
+
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=4)
 
 # ============================================================
 # 🔹 MAIN MENU — Colored Buttons + Animated Emoji
@@ -88,6 +118,13 @@ def main_menu():
 @bot.message_handler(commands=["start"])
 def start(message):
     uid = message.chat.id
+
+#   user save for stats
+    data = load_data()
+    user_id = message.from_user.id
+    if user_id not in data["users"]:
+        data["users"].append(user_id)
+        save_data(data)
 
     # 🔹 USER DATA
     user = message.from_user
@@ -494,6 +531,9 @@ def handle_text(message):
                 f,
                 caption="✅ Merged VCF"
             )
+            data = load_data()
+            data["vcf_count"] += 1
+            save_data(data)
 
         os.remove(filename)
 
@@ -1111,6 +1151,9 @@ def generate_vcf_files_clean(message, state, user_id, limit):
         # ⚡ SEND FILE
         with open(filename, "rb") as f:
             bot.send_document(message.chat.id, f)
+            data = load_data()
+            data["vcf_count"] += 1
+            save_data(data)
 
         os.remove(filename)
 
@@ -1274,6 +1317,9 @@ def handle_admin_navy(message, state, user_id):
                 f,
                 caption="✅ Generated VCF"
             )
+            data = load_data()
+            data["vcf_count"] += 1
+            save_data(data)
 
         os.remove(filename)
 
@@ -1469,6 +1515,9 @@ def split_vcf_files(message, state, user_id):
 
         with open(file_name, "rb") as f:
             bot.send_document(message.chat.id, f)
+            data = load_data()
+            data["vcf_count"] += 1
+            save_data(data)
 
         os.remove(file_name)
         try:
@@ -1603,6 +1652,9 @@ def generate_edited_vcf(message, state, user_id):
 
     with open(file_name, "rb") as f:
         bot.send_document(message.chat.id, f)
+        data = load_data()
+        data["vcf_count"] += 1
+        save_data(data)
 
     os.remove(file_name)
 
@@ -1977,6 +2029,85 @@ def handle_files(message):
     # ============================================================
     os.remove(path)
     bot.send_message(message.chat.id, "❌ Invalid file type for current mode.")
+
+
+# ============================================================
+# /Stats handle
+# ============================================================
+@bot.message_handler(commands=['stats'])
+def stats(message):
+    data = load_data()
+
+    total_users = len(data["users"])
+    total_vcf = data["vcf_count"]
+
+    text = f"""📊 SYSTEM LIVE STATISTICS
+━━━━━━━━━━━━━━━━━━━━━━
+📈 GLOBAL BOT USAGE
+├ 👥 Total Users: {total_users}
+└ 📁 VCFs Generated: {total_vcf}
+
+⚙️ SERVER PERFORMANCE
+├ ⏱ Uptime: {get_uptime()}
+├ 📡 Ping Status: (/ping)
+├ 🎁 Free Mode: ON
+└ 🟢 Status: Online
+
+🤖 SYSTEM HEALTH 
+├ 🔥 Load : Optimal
+├ ⚡ Speed : Fast Response
+└ 🛡 Security: Protected
+━━━━━━━━━━━━━━━━━━━━━━
+👨‍💻 Developed By: @Vikky_IND
+🔄 Last Updated: {get_indian_time()}
+"""
+
+    markup = types.InlineKeyboardMarkup()
+
+    # 🔒 ONLY ADMIN BUTTON
+    if message.from_user.id == ADMIN_ID:
+        markup.add(types.InlineKeyboardButton("🔄 Update Statistics", callback_data="refresh_stats"))
+
+    bot.send_message(message.chat.id, text, reply_markup=markup)
+
+
+# ============================================================
+# /STATS REFRESH CALLBACK
+# ============================================================
+@bot.callback_query_handler(func=lambda call: call.data == "refresh_stats")
+def refresh_stats(call):
+    if call.from_user.id != ADMIN_ID:
+        return
+
+    data = load_data()
+
+    text = f"""📊 SYSTEM LIVE STATISTICS
+━━━━━━━━━━━━━━━━━━━━━━
+📈 GLOBAL BOT USAGE
+├ 👥 Total Users: {len(data["users"])}
+└ 📁 VCFs Generated: {data["vcf_count"]}
+
+⚙️ SERVER PERFORMANCE
+├ ⏱ Uptime: {get_uptime()}
+├ 📡 Ping Status: (/ping)
+├ 🎁 Free Mode: ON
+└ 🟢 Status: Online
+
+🤖 SYSTEM HEALTH 
+├ 🔥 Load : Optimal
+├ ⚡ Speed : Fast Response
+└ 🛡 Security: Protected
+━━━━━━━━━━━━━━━━━━━━━━
+👨‍💻 Developed By: @Vikky_IND
+🔄 Last Updated: {datetime.now().strftime("%d %b %Y, %I:%M:%S %p")}
+"""
+
+    bot.edit_message_text(
+        text,
+        call.message.chat.id,
+        call.message.message_id,
+        reply_markup=call.message.reply_markup
+    )
 
 # ============================================================
 # 🔹 SHOW VCF PAGE
